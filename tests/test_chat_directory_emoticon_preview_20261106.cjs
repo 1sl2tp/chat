@@ -18,7 +18,7 @@ assert.equal(typeof a.window.V21NormalizeDisplayEmoticons,'function');
 assert(source.indexOf('data-build-source="app.js"')<source.indexOf('data-build-source="shell.js"'),
   'app.js must publish display mapping before shell.js');
 const shellStart=shell.indexOf('function compactPreview(value){');
-const shellEnd=shell.indexOf('function syncContactActiveState(){',shellStart);
+const shellEnd=shell.indexOf('function syncContactActiveState(',shellStart);
 assert(shellStart>=0&&shellEnd>shellStart,'sidebar preview owner exists');
 const s={window:a.window,bankReportContactView:()=>null};
 vm.createContext(s);
