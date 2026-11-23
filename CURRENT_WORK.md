@@ -1,3 +1,12 @@
+## 2026-11-23 — BANK-368 / Chỉ áp dụng bill mới kể từ thời điểm người dùng chốt
+- **Quy định:** bắt đầu từ **16:58:11 VN ngày 23/11/2026** (`2026-11-23T09:58:11.000Z`), chỉ xử lý bill có thời điểm khách gửi gốc `sent_at` từ mốc này; bill có `sent_at` trước mốc coi là lịch sử bất biến đối với các đường xử lý của BANK-368.
+- **E0:** tại thời điểm chốt, bảng vẫn có 41 bill `amount_read` và 17 bill `review` cũ, 0 bill mới ở các trạng thái này; không cập nhật/chạm vào bản ghi nào khi đo.
+- **E1:** Agribank ingest chỉ đánh thức bill `sent_at>=cutover` khi có thông báo chính thức mới; vẫn lưu thông báo ngân hàng mới và duy trì xử lý dedupe BANK-367.
+- **E2:** worker `v21-bank-bill-event` từ chối mọi tác vụ với bill cũ ngay sau khi đọc bản ghi, trước mọi nhánh tự thu, đọc lại OCR, chuyển trạng thái và nhắn khách. Thời gian thông báo Agribank đến muộn không được dùng làm mốc bill mới.
+- **E3:** không truy thu, không quét/khôi phục bill cũ, không gửi tin khách về bill cũ; không thêm RPC/migration/cron/hồi tố.
+- **E4:** CI `tests/test_bank368_forward_only_cutover_20261123.mjs` kiểm thử cận trên/cận dưới mốc, bill thiếu timestamp, và thứ tự bảo vệ trước mọi side effect.
+- **E5:** chỉ phát hành sau `Verify V21` xanh; xác nhận Edge production parity với `main` và kiểm tra dữ liệu chỉ đọc. Bất kỳ bill cũ nào vẫn để nguyên và nếu cần xử lý thủ công sau này phải có yêu cầu riêng.
+
 ## 2026-11-23 — BANK-366 · Khách xác nhận giờ chuyển khoản bằng tin nhắn đối soát
 
 - **E0 / Yêu cầu:** Nếu AI xác định chắc chắn bill chuyển khoản thành công có ngày in rõ nhưng **không có giờ**, phải nhắn ngay trong đúng hội thoại cho khách để cả hai bên lưu dấu vết giờ chuyển tiền (HH:mm). Không suy diễn giờ trên ảnh từ giờ gửi Chat/thông báo ngân hàng và không tự thu chỉ từ câu trả lời của khách. C Sâm PL: 1.053.000đ (2 ảnh cùng reference) và 1.102.000đ (mã NAPAS, chỉ in ngày).
