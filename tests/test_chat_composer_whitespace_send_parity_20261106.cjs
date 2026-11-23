@@ -63,6 +63,7 @@ assert.equal(ctx.sendButton.disabled,true,'partial photo batch cannot be submitt
 pendingImageBatch=false;
 ctx.sync();
 assert.equal(ctx.composerShell.dataset.canSend,'true','complete photo batch unlocks Send');
+ctx.pendingAttachments=[]; // Finish the media case before testing blank-draft mode switching.
 ctx.composerSendMode='enter';
 ctx.editor.value='   ';ctx.sync();
 assert.equal(ctx.editor.enterKeyHint,'send');
