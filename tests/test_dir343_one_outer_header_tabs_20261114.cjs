@@ -54,6 +54,18 @@ assert.equal(right.textContent,'Ảnh','desktop keeps existing navigation');
 small=true;context.sync();
 assert.equal(right.textContent,'Công việc');
 
+// CHAT v2: layout density and visible release marker must survive refactors.
+assert(directory.includes('/* CHAT v2 / directory density:'),
+ 'v2 mobile directory layout owner must exist');
+assert(directory.includes('.contact-directory-tools[data-directory-section="chat"]{row-gap:4px;padding-top:4px;padding-bottom:3px}'),
+ 'v2 reduces decorative spacing without collapsing search or filter controls');
+assert(directory.includes('.contact-directory-search{height:44px}'),
+ 'search retains a 44px mobile touch target');
+assert(directory.includes('.contact-directory-filter-line{min-height:44px}'),
+ 'filter rail retains a 44px mobile touch target');
+assert(directory.includes('::after{content:"v2";'),
+ 'the mobile Work tab shows the released v2 marker');
+
 assert(html.includes('data-top-tab="photos" data-nav-target="photos"'),
  'photo feature is preserved, not deleted from app');
 assert(html.includes('DIR-343: on the outer Admin directory'));
