@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <meta name="app-release-version" content="V21.72.76">
-<meta name="app-build-id" content="dcd0b208d62c52d977ad8caf96986a99952de9a06b376cb2ebf3d749de854751">
+<meta name="app-build-id" content="2eb531fc6b055e62930b6b48e72818d757f0fca57935a0ecaff95dfc5971aed4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14617,6 +14617,60 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   #composerShell #send:disabled {
     cursor:default;
     opacity:.55;
+  }
+}
+
+/* PA11 phase 2 — mobile header is a contact identity row, not a segmented
+   control pill. Preserve both existing tab handlers (Chat / Photos), call
+   status controls and the menu: visual hierarchy only, no fake controls.
+   The directory header is explicitly excluded from this conversation rule. */
+@media (max-width:63.999rem) {
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:not([data-mobile-directory="true"])
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .top-mode-switch[data-contact-identity="true"] {
+    width:100%;
+    justify-self:stretch;
+    display:flex;
+    align-items:center;
+    gap:4px;
+    padding:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:not([data-mobile-directory="true"])
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"] {
+    flex:1 1 auto;
+    justify-content:flex-start;
+    text-align:left;
+    padding-inline:4px;
+    border-radius:10px;
+    background:transparent;
+    box-shadow:none;
+    font-weight:600;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:not([data-mobile-directory="true"])
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="photos"] {
+    flex:0 0 auto;
+    min-height:44px;
+    padding-inline:8px;
+    border-radius:10px;
+    background:transparent;
+    box-shadow:none;
+    font-size:12px;
+  }
+  #appShell[data-auth-state="authenticated"][data-route="chat"]:not([data-mobile-directory="true"])
+  #stageLayout:not([data-bank-report-active="true"])
+  #regionTop .top-mode-switch[data-contact-identity="true"] .top-mode-contact-avatar:not([hidden]) {
+    width:30px;
+    height:30px;
+    flex-basis:30px;
+    min-width:30px;
+    min-height:30px;
+    max-width:30px;
+    max-height:30px;
   }
 }
 
