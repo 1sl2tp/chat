@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.75">
-<meta name="app-build-id" content="13ab3ff6975708fba8fb66d5084725543d7af2c0735eaa2c788c412c65e4d7b8">
+<meta name="app-release-version" content="V21.72.76">
+<meta name="app-build-id" content="c96dd042b543b909b6b0b707357cfe237c993700402c75404ece44f93f740b75">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6790,9 +6790,10 @@ body.ncc-ai-room-open{overflow:hidden}
   --ui-space-32:32px;
 
   --ui-gutter-mobile:12px;
-  /* UI-145: 2 semantic rails: actions/forms vs edge-anchored messages. */
+  /* CHAT-437: one 12px layout ruler; rounded message media/bubbles get
+     a 2px optical inset rather than a second nested margin. */
   --ui-chat-layout-rail:12px;
-  --ui-chat-message-rail:6px;
+  --ui-chat-message-rail:14px;
   /* UI-147 — directory vertical spacing; scoped mobile CSS consumes these. */
   --ui-directory-root-top-min:12px;
   --ui-directory-top-trim:16px;
@@ -6820,7 +6821,7 @@ body.ncc-ai-room-open{overflow:hidden}
   /* UI-144: mobile composer geometry is token-owned, not sender-state-owned. */
   --ui-composer-gutter:12px;
   --ui-composer-inner-inset:4px;
-  --ui-composer-action-gap:4px;
+  --ui-composer-action-gap:8px;
   /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: ChatGPT-style optical
      parity inside unchanged 44px accessible iPhone touch targets. */
   --ui-composer-send-disc:38px;
@@ -7085,7 +7086,7 @@ body.ncc-ai-room-open{overflow:hidden}
        upward from the same bottom edge and NEVER changes its width. */
     grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
     align-items:end;
-    gap:0 var(--ui-composer-action-gap,4px);
+    gap:0 var(--ui-composer-action-gap,8px);
     overflow:visible;
     border:1px solid color-mix(in srgb,var(--theme-border-default) 78%,transparent);
     border-radius:var(--ui-chat-composer-radius,var(--radius-2xl,28px));
@@ -7119,7 +7120,9 @@ body.ncc-ai-room-open{overflow:hidden}
     grid-row:3;
     align-self:end;
     min-width:0;
-    padding:0 2px!important;
+    /* The text starts 12px inside the rounded input capsule, independent
+       of the 44px microphone target at its opposite end. */
+    padding:0 2px 0 10px!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
@@ -7349,17 +7352,18 @@ body.ncc-ai-room-open{overflow:hidden}
     margin-inline:0!important;
     padding-inline:0!important;
   }
-  /* The thread, not its parents or the bubbles, owns ONE physical side
-     gutter. Preserve iPhone safe areas in landscape; portrait is 6px. The
-     old 12px rule + a later 14px mobile polish rule looked like double inset. */
+  /* CHAT-437 PA2: thread, not the bubbles, owns ONE symmetric reading rail.
+     Composer/search use 12px; add 2px optical compensation for rounded
+     bubbles and media corners. Never double-pad a message row or its image.
+     Landscape safe areas stay authoritative; no viewport or scroll owner. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow{
     box-sizing:border-box;
     width:100%;
     max-width:100%;
     margin-inline:0;
     padding-inline:
-      max(var(--ui-chat-message-rail,6px),env(safe-area-inset-left,0px))
-      max(var(--ui-chat-message-rail,6px),env(safe-area-inset-right,0px))!important;
+      max(var(--ui-chat-message-rail,14px),env(safe-area-inset-left,0px))
+      max(var(--ui-chat-message-rail,14px),env(safe-area-inset-right,0px))!important;
   }
   /* Safari standalone can reserve an invisible scrollbar gutter despite the
      intentionally hidden scrollbars. Reclaim it only in single-pane Chat. */
@@ -13838,7 +13842,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
    CHAT-435: approved 2027/V46 hierarchy, assistant-ui ThreadList pattern and
    React Aria keyboard/focus principles. Replaces styling inside this owner:
    quieter header tabs, one visual search/filter tool, one-line previews,
-   68px minimum list rows; no new DOM, network or viewport event owner.
+   64px minimum list rows; no new DOM, network or viewport event owner.
    Regression/rationale: docs/ui/CHAT-435-2027-DIRECTORY-UX.md
    CHAT-395 retains this one owner: Top 1 = shell Chat/Work header;
    Top 2 = 2-row search/filter toolbar; Content = sole contact list scroller.
@@ -14043,19 +14047,19 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer [data-v21-contact-list]{
     box-sizing:border-box;
-    padding:0 8px max(12px,env(safe-area-inset-bottom,0px))!important;
+    padding:0 10px max(12px,env(safe-area-inset-bottom,0px))!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row{
     box-sizing:border-box;
     height:auto!important;
-    min-height:68px!important;
+    min-height:64px!important;
     border-radius:0;
     background:transparent;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-chat{
     box-sizing:border-box;
     height:auto!important;
-    min-height:68px!important;
+    min-height:64px!important;
     padding:8px 4px!important;
     grid-template-columns:40px minmax(0,1fr);
     column-gap:10px!important;
@@ -17675,9 +17679,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.75 runtime: '+message;
+    runtimeError.textContent='V21.72.76 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.75]',error);
+    console.error('[ChatScreenModule V21.72.76]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -17789,7 +17793,7 @@ const appleTouchPlatform=Boolean(
 );
 
 /* =========================================================
-   V21.72.75 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
+   V21.72.76 VIEWPORT POLICY + CANONICAL CONVERSATION/COMPOSER SCOPE
    RuntimeAdapter answers WHERE. RuntimeProfile answers small Web/App deltas.
    Chat/Scroll/Media/Audio/Call do not fork by iOS/Android/PWA.
    ========================================================= */
@@ -17843,7 +17847,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.75',
+  releaseVersion:'V21.72.76',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -26713,7 +26717,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.75',
+  version:'V21.72.76',
   snapshot(){
     return{
       viewportMode:viewport.mode,
