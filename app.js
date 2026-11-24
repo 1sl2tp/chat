@@ -275,9 +275,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.80 runtime: '+message;
+    runtimeError.textContent='V21.72.81 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.80]',error);
+    console.error('[ChatScreenModule V21.72.81]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
