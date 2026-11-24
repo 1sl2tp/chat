@@ -77,6 +77,6 @@ assert(pure.includes('mỗi\\s+màu'));
 const release=html.match(/name="app-release-version" content="(V21\.72\.\d+)"/u)?.[1];
 assert(release&&Number(release.split('.').at(-1))>=69,'release >= V21.72.69');
 assert(sw.includes("RELEASE_VERSION='"+release+"'"),'SW/HTML version parity');
-const epoch=sw.match(/SHELL_CACHE_EPOCH='pwa-chat-ui(\d+)-[^']+'/u);
+const epoch=sw.match(/SHELL_CACHE_EPOCH='pwa-chat-(?:ui|img)?(\d+)-[^']+'/u);
 assert(epoch&&Number(epoch[1])>=425,'PWA shell epoch >= CHAT-425');
 console.log('CHAT-425 text *quantity and isolated stock photo OCR guard: PASS');
