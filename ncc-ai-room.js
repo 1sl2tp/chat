@@ -212,13 +212,33 @@ async function openProductLinkEditor(bubble,record,line,refresh){
   const save=node(editor,"button","Xác nhận liên kết","ncc-ai-recheck");
   save.type="button";save.disabled=true;
   const status=node(editor,"small","");
+  const factorLabel=node(editor,"label","Hệ số quy đổi (số đơn vị giá vốn trong một đơn vị phiếu)");
+  const factor=node(factorLabel,"input");factor.type="number";factor.min="0.000001";factor.step="any";
+  const verifyLabel=node(editor,"label");
+  const verified=node(verifyLabel,"input");verified.type="checkbox";
+  verifyLabel.append(document.createTextNode(" Đã kiểm tra quy cách"));
+  const comparison=node(editor,"p","Chưa xác minh quy đổi.");
+  comparison.setAttribute("aria-live","polite");
   let selected=null;
+  function compare(){
+   const old=Number(selected?.input_price_vnd),price=Number(line.net_unit_vnd),f=Number(factor.value);
+   if(!selected||!verified.checked||!Number.isFinite(f)||f<=0||!Number.isFinite(price)||price<=0||!Number.isFinite(old)||old<=0){
+    comparison.textContent="Chưa đủ dữ liệu xác minh giá.";return;
+   }
+   const next=price/f;
+   if(!Number.isSafeInteger(next)||next<=0){comparison.textContent="Giá quy đổi không hợp lệ.";return;}
+   const delta=next-old,pct=delta/old*100;
+   comparison.textContent="Giá quy đổi: "+money(next)+" đ · Chênh lệch: "+(delta>0?"+":"")+money(delta)+" đ ("+pct.toFixed(2)+"%). "+(Math.abs(pct)>20?"Cần kiểm tra giá bất thường.":"Chờ duyệt giá.")+" Chỉ xem trước.";
+  }
+  factor.addEventListener("input",()=>{verified.checked=false;compare();});
+  verified.addEventListener("change",compare);
   const productByCode=new Map(productCatalog.map(p=>[String(p.product_code),p]));
   const current=findProductLink(record,line);
   const suggestions=(Array.isArray(current?.candidates)?current.candidates:[])
     .map(p=>productByCode.get(String(p.product_code))).filter(Boolean);
   function choose(p){
    selected=p;
+   factor.value="";verified.checked=false;compare();
    search.value=p.product_code+" · "+p.product_name;
    vi.value=String(p.vietnamese_name||"");
    save.disabled=false;
@@ -242,7 +262,7 @@ async function openProductLinkEditor(bubble,record,line,refresh){
    }
    if(!matches.length)node(results,"small",query?"Không tìm thấy mã SP phù hợp.":"Gõ tên hoặc mã sản phẩm để tìm.");
   }
-  search.addEventListener("input",()=>{selected=null;save.disabled=true;renderMatches();});
+  search.addEventListener("input",()=>{selected=null;verified.checked=false;compare();save.disabled=true;renderMatches();});
   save.addEventListener("click",async()=>{
    if(!selected||owner!==accountSession())return;
    save.disabled=true;status.textContent="Đang lưu liên kết đã xác nhận…";
