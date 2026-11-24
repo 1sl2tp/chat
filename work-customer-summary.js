@@ -951,9 +951,29 @@ function renderSupplierContext(contact){
 
 function renderCurrent(){
   const current=activeContact();
-  if(!forceOverview&&!selectedWorkCustomerId&&window.V21ContactDirectoryAdmin?.getContactGroup?.(current?.id)==='ncc'){
-    renderSupplierContext(current);
+  const auth=snapshot();
+  if(auth.state!=='AUTHENTICATED'||auth.account?.role!=='admin'){
+    root()?.replaceChildren();
     return;
+  }
+  if(!forceOverview&&!selectedWorkCustomerId&&current?.id){
+    const group=window.V21ContactDirectoryAdmin?.getContactGroup?.(current.id);
+    if(group==='ncc'){
+      renderSupplierContext(current);
+      return;
+    }
+    if(group!=='customer'){
+      const host=root();
+      if(!host)return;
+      host.replaceChildren();
+      const back=node('button','work-summary-all','Tất cả');
+      back.type='button';
+      back.dataset.workSummaryAll='true';
+      back.dataset.workSummaryBack=workDetailBackMode();
+      host.append(back,node('div','work-summary-state work-summary-state-muted',
+        group==null?'Chưa xác định nhóm đối tượng.':'Đối tượng này không thuộc nhóm khách hàng.'));
+      return;
+    }
   }
   // WORK-149: after Work-only data has been cleared, never retain a stale
   // selected customer detail from a previous render/session.
