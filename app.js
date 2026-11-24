@@ -275,9 +275,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.82 runtime: '+message;
+    runtimeError.textContent='V21.72.83 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.82]',error);
+    console.error('[ChatScreenModule V21.72.83]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -443,7 +443,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.82',
+  releaseVersion:'V21.72.83',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -6467,11 +6467,9 @@ function ensureComposerMeasureReady(){
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
 }
 
-// CHAT-398: one stable mobile action row. The textarea keeps the SAME
-// width for one, two and many lines; only its height grows upward. Moving
-// actions to a second grid row changed text wrapping mid-keystroke and made
-// Safari alternately resize/reposition the whole Composer above the keyboard.
-// Desktop retains its existing two-line cap. Caret and IME remain native.
+// CHAT-446: one permanent mobile full-width editor row ABOVE the action rail.
+// This is NOT a 1-to-2-row mode switch; controls/width never move while typing.
+// Desktop, native textarea/caret, IME, and VisualViewport owner stay unchanged.
 const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||null;
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
@@ -6536,12 +6534,10 @@ function autoGrow({source='layout'}={}){
     const composerHeight=typeof bottomContainer!=='undefined'
       ?Math.ceil(bottomContainer?.getBoundingClientRect?.().height||0):0;
     const editorHeight=Math.ceil(editor.getBoundingClientRect().height||lastEditorHeightPx);
-    // This is constant during typing: action controls never swap tracks.
-    // The first 40px text row sits inside a 44px action track. Subtract
-    // that track's painted height, not 40px, so the cached chrome height
-    // remains constant as text grows across the first line break.
+    // Mobile text is a separate full-width row above the fixed 44px actions;
+    // exclude its full height from overhead. Desktop still shares one track.
     const composerOverhead=composerHeight>0
-      ?Math.max(0,composerHeight-Math.max(44,editorHeight)):12;
+      ?Math.max(0,composerHeight-(mobile?editorHeight:Math.max(44,editorHeight))):12;
     composerTypingMetrics={lineHeight,headerHeight,composerOverhead,cssMaxHeight};
   }
   const {lineHeight,headerHeight,composerOverhead,cssMaxHeight}=composerTypingMetrics;
@@ -6576,10 +6572,11 @@ function autoGrow({source='layout'}={}){
     // A fixed VisualViewport dock must grow UP, never extend downward into
     // the keyboard for one animation frame before the ResizeObserver runs.
     if(typeof KeyboardInsetAdapter!=='undefined'){
-      // The grid already reserves 44px for the action buttons. A 40→64px
-      // editor change physically grows the dock by only 20px (not 24px).
-      // Compensating for the raw delta would cause a 4px iOS bounce.
-      const paintedDelta=Math.max(44,next)-Math.max(44,previousHeight);
+      // Two-row mobile dock grows by the FULL editor delta. Desktop keeps
+      // shared 44px action-track compensation. Same paint, no iOS bounce.
+      const paintedDelta=mobile
+        ?next-previousHeight
+        :Math.max(44,next)-Math.max(44,previousHeight);
       KeyboardInsetAdapter.adjustForEditorHeightChange(paintedDelta);
     }
   }
@@ -9366,7 +9363,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.82',
+  version:'V21.72.83',
   snapshot(){
     return{
       viewportMode:viewport.mode,

@@ -169,9 +169,9 @@
     box-sizing:border-box;
   }
 
-  /* ChatGPT-like adaptive dock: reply/attachments occupy rows above one
-     compact writing row. The existing keyboard owner still moves the whole
-     composer when VisualViewport opens. */
+  /* CHAT-446: permanent two-row mobile Composer. A full-width text row
+     stands ABOVE the 44px action rail for 1, 2 and many lines; no mode switch.
+     VisualViewport/keyboard placement remains solely in app.js. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] .composer-source-frame{
     /* chat-content-axis has its own !important padding (desktop); cancel it
        here so the mobile composer does NOT pay the outer gutter twice. */
@@ -185,9 +185,8 @@
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
     grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
-    /* CHAT-398: one stable action row at every line count. Text grows
-       upward from the same bottom edge and NEVER changes its width. */
-    grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
+    /* Reply/attachments, full-width editor, stable footer action rail. */
+    grid-template-rows:auto auto minmax(40px,auto) minmax(var(--ui-control-touch,44px),auto);
     align-items:end;
     gap:0 var(--ui-composer-action-gap,8px);
     overflow:visible;
@@ -219,13 +218,12 @@
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
-    grid-column:2;
+    grid-column:1 / -1;
     grid-row:3;
-    align-self:end;
+    align-self:stretch;
     min-width:0;
-    /* The text starts 12px inside the rounded input capsule, independent
-       of the 44px microphone target at its opposite end. */
-    padding:0 2px 0 10px!important;
+    /* Composer owns the left ruler; text never starts after the + column. */
+    padding:0 10px!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
@@ -284,18 +282,18 @@
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
-    grid-row:3;
+    grid-row:4;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
     display:none;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
     grid-column:3;
-    grid-row:3;
+    grid-row:4;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
-    grid-row:3;
+    grid-row:4;
     /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: 44px hit target with
        a 38px painted disc (3px surrounding composer-colored ring).
        Keep exactly the same disc in active/idle/keyboard modes. */
@@ -325,9 +323,8 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg :is(path,line,rect,circle,polyline){
     stroke-width:2px!important;
   }
-  /* CHAT-398: no mode-dependent grid reflow on soft wrap or newline.
-     Plus, microphone and send remain on the last text row,
-     while the native textarea grows only into the space above. */
+  /* CHAT-446: Plus, microphone and Send always remain on the bottom rail.
+     Full-width native textarea grows above them, and scrolls at its cap. */
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:not([data-can-send="true"]) #send{
     background:color-mix(in srgb,var(--theme-content-tertiary) 47%,var(--theme-surface-secondary));
