@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {previewCostChange as preview} from '../supplier-invoice-core.mjs';
+const base={oldCostVnd:10000,newUnitPriceVnd:120000,unitFactor:10,unitVerified:true};
+assert.equal(preview(base).status,'review');
+assert.equal(preview(base).deltaVnd,2000);
+assert.equal(preview({...base,newUnitPriceVnd:121000}).reason,'price_jump');
+assert.equal(preview({...base,unitVerified:false}).reason,'unverified_unit_or_price');
+assert.equal(preview({...base,oldCostVnd:0}).reason,'missing_old_cost');
+assert.equal(preview({...base,unitFactor:0}).status,'manual');
+assert.equal(preview({...base,newUnitPriceVnd:120001}).reason,'invalid_normalized_cost');
+assert.equal(preview({...base,newUnitPriceVnd:80000}).deltaVnd,-2000);
+console.log('CRM supplier cost preview OK');
