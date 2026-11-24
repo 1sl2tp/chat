@@ -222,7 +222,11 @@ async function openProductLinkEditor(bubble,record,line,refresh){
    search.value=p.product_code+" · "+p.product_name;
    vi.value=String(p.vietnamese_name||"");
    save.disabled=false;
-   status.textContent="Đã chọn "+p.product_code+". Kiểm tra tên và quy cách trước khi lưu.";
+   const oldCost=p.input_price_vnd;
+   const newPrice=line.net_unit_vnd;
+   const oldLabel=oldCost!=null&&Number.isFinite(Number(oldCost))&&Number(oldCost)>0?money(oldCost)+" đ / "+(p.input_price_basis||"chưa rõ quy cách"):"Chưa có giá vốn";
+   const newLabel=newPrice!=null&&Number.isFinite(Number(newPrice))&&Number(newPrice)>0?money(newPrice)+" đ / "+(line.printed_unit||"chưa rõ đơn vị"):"Chưa xác minh giá sau CK";
+   status.textContent="Đã chọn "+p.product_code+". Giá vốn hiện tại: "+oldLabel+". Giá phiếu sau CK: "+newLabel+". Chưa tính chênh lệch khi chưa xác minh quy đổi. Chỉ lưu liên kết.";
   }
   function renderMatches(){
    results.replaceChildren();
