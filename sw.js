@@ -45,7 +45,7 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-437: refresh PUBLIC layout/reading rail and rounded composer only.
 // Keep private messages, drafts, auth and outbox caches intact.
 // CHAT-444: rotate ONLY the public shell, retain drafts, private messages and outbox.
-const SHELL_CACHE_EPOCH='pwa-chat-445-ios-composer-geometry-20261124';
+const SHELL_CACHE_EPOCH='pwa-chat-ui445-ios-composer-geometry-20261124';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
