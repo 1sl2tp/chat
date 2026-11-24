@@ -930,7 +930,13 @@ function renderSupplierContext(contact){
   header.append(back,title);
   host.append(header);
   const body=node('div','work-summary-body work-summary-detail');
-  body.append(node('div','work-summary-state work-summary-state-muted','Báo giá và đồng bộ giá: chưa kết nối dữ liệu.'));
+  const room=window.V21NccAiRoom;
+  const launch=node('button','work-summary-all','Mở nhập hàng NCC');
+  launch.type='button';
+  launch.disabled=typeof room?.open!=='function';
+  launch.addEventListener('click',()=>{if(snapshot().account?.role==='admin')void room?.open?.();});
+  body.append(launch);
+  body.append(node('div','work-summary-state work-summary-state-muted','Kho phiếu nhập chung của Admin. Chưa lọc theo NCC đang chat; chưa đồng bộ giá bán.'));
   host.append(body);
 }
 
