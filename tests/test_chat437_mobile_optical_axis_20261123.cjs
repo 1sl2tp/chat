@@ -54,7 +54,7 @@ assert(ab.includes('B / remote: genuine unboxed text'));
 assert(ab.includes('border-radius:24px!important;'));
 assert(ab.includes('/* CHAT-444 · iPhone side-by-side reference: ONE parent capsule'),
  'single ChatGPT-like input capsule replaces nested input painting');
-assert(ab.includes('border-radius:999px!important;'),
+assert(ab.includes('border-radius:var(--ui-chat-composer-radius,28px)!important;'),
  'composer optical edge belongs to the ComposerShell parent');
 assert(ab.includes(':has(#editor:focus-visible){'),
  'the single capsule uses editor-only focus, not duplicate surface');
