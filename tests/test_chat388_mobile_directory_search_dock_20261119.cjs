@@ -66,7 +66,7 @@ assert(!/position:(?:fixed|absolute)|translate[XYZ]?\(/.test(searchOwner),
 assert(source.includes('id="shellNavigationLayer"'));
 assert(source.includes('class="wm-sidebar-navigation"'));
 assert(css.includes('SPEC-CHAT-MOBILE-DIRECTORY-VV-20261101'));
-assert(Number(sw.match(/SHELL_CACHE_EPOCH='pwa-chat-ui(\d+)-/)?.[1]||0)>=396,
+assert(Number(sw.match(/SHELL_CACHE_EPOCH='pwa-chat-(?:ui|img)?(\d+)-/)?.[1]||0)>=396,
   'PWA cache epoch must retain CHAT-396 and permit newer releases');
 assert(patch.includes('grid-template-areas:"navigation"'),'footer must not reserve height under search');
 assert(patch.includes('.shell-sidebar-account-footer[data-menu-open="true"]'),'account actions remain accessible');
