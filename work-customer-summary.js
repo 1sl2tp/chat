@@ -899,9 +899,18 @@ function renderCustomerDetail(row,contact){
   }
 
   const body=node('div','work-summary-body work-summary-detail');
-  const list=node('ol','work-summary-list');
-  records.forEach(record=>list.append(renderDetailItem(record,customerId)));
-  body.append(list);
+  for(const [label,items] of [
+    ['Chờ xử lý',records.filter(record=>!record.completed)],
+    ['Đã đánh dấu',records.filter(record=>record.completed)]
+  ]){
+    if(!items.length)continue;
+    const section=node('section','work-summary-status-section');
+    section.append(node('h3','work-summary-subheading',label+' · '+items.length));
+    const list=node('ol','work-summary-list');
+    items.forEach(record=>list.append(renderDetailItem(record,customerId)));
+    section.append(list);
+    body.append(section);
+  }
   host.append(body);
 }
 
