@@ -101,3 +101,14 @@ export function previewCostChange({oldCostVnd,newUnitPriceVnd,unitFactor,unitVer
     reason:Math.abs(deltaPercent)>20?'price_jump':null,
     oldCostVnd,newCostVnd,deltaVnd,deltaPercent};
 }
+
+export function reviewCostApproval({productCode,linkedProductCode,invoiceVerified,unitVerified,oldCostVnd,currentCostVnd,newUnitPriceVnd,unitFactor,acceptPriceJump=false}={}){
+  if(typeof productCode!=='string'||!productCode.trim()||productCode!==linkedProductCode)
+    return {status:'blocked',reason:'product_link_required'};
+  if(invoiceVerified!==true)return {status:'blocked',reason:'invoice_review_required'};
+  if(oldCostVnd!==currentCostVnd)return {status:'blocked',reason:'stale_catalog_cost'};
+  const preview=previewCostChange({oldCostVnd,newUnitPriceVnd,unitFactor,unitVerified});
+  if(preview.status==='review'||(preview.reason==='price_jump'&&acceptPriceJump===true))
+    return {...preview,status:'ready_for_approval'};
+  return {...preview,status:'blocked'};
+}
