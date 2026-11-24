@@ -193,12 +193,11 @@ async function openProductLinkEditor(bubble,record,line,refresh){
   feedback.textContent="Chức năng liên kết sản phẩm chưa sẵn sàng.";return;
  }
  try{
-  if(!productCatalog){
-   const result=await api("catalog");
-   if(!Array.isArray(result.products))throw Error("product_identity_unavailable");
-   productCatalog=result.products;
-  }
+  // Refresh catalog on each review; never reuse a previous session's cost.
+  const result=await api("catalog");
   if(!editor.isConnected||owner!==accountSession())return;
+  if(!Array.isArray(result.products))throw Error("product_identity_unavailable");
+  productCatalog=result.products;
   feedback.textContent="Chọn đúng mã SP. Chỉ lưu liên kết tên, không sửa giá vốn.";
   const search=node(editor,"input");
   search.type="search";search.placeholder="Tìm tên hoặc mã sản phẩm TAPHOA";
@@ -212,17 +211,41 @@ async function openProductLinkEditor(bubble,record,line,refresh){
   const save=node(editor,"button","Xác nhận liên kết","ncc-ai-recheck");
   save.type="button";save.disabled=true;
   const status=node(editor,"small","");
+  const factorLabel=node(editor,"label","Hệ số quy đổi (số đơn vị giá vốn trong một đơn vị phiếu)");
+  const factor=node(factorLabel,"input");factor.type="number";factor.min="0.000001";factor.step="any";
+  const verifyLabel=node(editor,"label");
+  const verified=node(verifyLabel,"input");verified.type="checkbox";
+  verifyLabel.append(document.createTextNode(" Đã kiểm tra quy cách"));
+  const comparison=node(editor,"p","Chưa xác minh quy đổi.");
+  comparison.setAttribute("aria-live","polite");
   let selected=null;
+  function compare(){
+   const old=Number(selected?.input_price_vnd),price=Number(line.net_unit_vnd),f=Number(factor.value);
+   if(!selected||!verified.checked||!Number.isFinite(f)||f<=0||!Number.isFinite(price)||price<=0||!Number.isSafeInteger(old)||old<=0||!String(selected.input_price_basis||"").trim()||!String(line.printed_unit||"").trim()){
+    comparison.textContent="Chưa đủ dữ liệu xác minh giá.";return;
+   }
+   const next=price/f;
+   if(!Number.isSafeInteger(next)||next<=0){comparison.textContent="Giá quy đổi không hợp lệ.";return;}
+   const delta=next-old,pct=delta/old*100;
+   comparison.textContent="Giá quy đổi: "+money(next)+" đ · Chênh lệch: "+(delta>0?"+":"")+money(delta)+" đ ("+pct.toFixed(2)+"%). "+(Math.abs(pct)>20?"Cần kiểm tra giá bất thường.":"Đủ dữ liệu đối chiếu.")+" Chỉ xem trước; chưa duyệt giá.";
+  }
+  factor.addEventListener("input",()=>{verified.checked=false;compare();});
+  verified.addEventListener("change",compare);
   const productByCode=new Map(productCatalog.map(p=>[String(p.product_code),p]));
   const current=findProductLink(record,line);
   const suggestions=(Array.isArray(current?.candidates)?current.candidates:[])
     .map(p=>productByCode.get(String(p.product_code))).filter(Boolean);
   function choose(p){
    selected=p;
+   factor.value="";verified.checked=false;compare();
    search.value=p.product_code+" · "+p.product_name;
    vi.value=String(p.vietnamese_name||"");
    save.disabled=false;
-   status.textContent="Đã chọn "+p.product_code+". Kiểm tra tên và quy cách trước khi lưu.";
+   const oldCost=p.input_price_vnd;
+   const newPrice=line.net_unit_vnd;
+   const oldLabel=oldCost!=null&&Number.isFinite(Number(oldCost))&&Number(oldCost)>0?money(oldCost)+" đ / "+(p.input_price_basis||"chưa rõ quy cách"):"Chưa có giá vốn";
+   const newLabel=newPrice!=null&&Number.isFinite(Number(newPrice))&&Number(newPrice)>0?money(newPrice)+" đ / "+(line.printed_unit||"chưa rõ đơn vị"):"Chưa xác minh giá sau CK";
+   status.textContent="Đã chọn "+p.product_code+". Giá vốn hiện tại: "+oldLabel+". Giá phiếu sau CK: "+newLabel+". Chưa tính chênh lệch khi chưa xác minh quy đổi. Chỉ lưu liên kết.";
   }
   function renderMatches(){
    results.replaceChildren();
@@ -238,7 +261,7 @@ async function openProductLinkEditor(bubble,record,line,refresh){
    }
    if(!matches.length)node(results,"small",query?"Không tìm thấy mã SP phù hợp.":"Gõ tên hoặc mã sản phẩm để tìm.");
   }
-  search.addEventListener("input",()=>{selected=null;save.disabled=true;renderMatches();});
+  search.addEventListener("input",()=>{selected=null;verified.checked=false;compare();save.disabled=true;renderMatches();});
   save.addEventListener("click",async()=>{
    if(!selected||owner!==accountSession())return;
    save.disabled=true;status.textContent="Đang lưu liên kết đã xác nhận…";

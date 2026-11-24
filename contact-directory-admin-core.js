@@ -218,6 +218,7 @@ async function ensureGroups({force=false}={}){
     loadedAdminId=adminId;
     syncDirectoryRows();
     syncAdminGroupControls();
+    document.dispatchEvent(new Event('v21-contact-groups-ready'));
     return true;
   }catch{
     return false;
@@ -256,5 +257,5 @@ const overlayRoot=document.querySelector('[data-global-overlay-root]')||document
 new MutationObserver(scheduleSync).observe(overlayRoot,{childList:true,subtree:true});
 scheduleSync();
 
-window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,sync:syncDirectoryRows,refreshGroups:()=>ensureGroups({force:true})});
+window.V21ContactDirectoryAdmin=Object.freeze({sortDirectoryContacts,sync:syncDirectoryRows,refreshGroups:()=>ensureGroups({force:true}),getContactGroup(id){if(!currentAdmin()||loadedAdminId!==String(currentAdmin()?.id||''))return null;return groupMap.get(String(id||''))??null;}});
 })();

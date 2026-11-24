@@ -605,3 +605,38 @@
   vertical-align:-2px;
   pointer-events:none;
 }
+
+/* CRM: status groups share the same list geometry; header metrics must wrap. */
+.work-summary-detail-header .work-summary-header-title{
+  flex:1 1 0;
+  min-width:0;
+  flex-direction:column;
+  align-items:stretch;
+  gap:2px;
+  white-space:normal;
+}
+.work-summary-detail-header .work-summary-heading{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.work-summary-detail-header .work-summary-subheading{
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:16px;
+}
+.work-summary-status-section{
+  min-width:0;
+}
+.work-summary-status-section + .work-summary-status-section{
+  margin-block-start:12px;
+}
+.work-summary-status-section > h3{
+  margin:0;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:600;
+  line-height:18px;
+  color:var(--theme-content-secondary);
+}

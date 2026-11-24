@@ -162,7 +162,7 @@ async function getSaved(id:string,hash:string){
 // names are Admin-approved aliases, not new products or cost updates.
 async function productIdentity(){
  const [catalog,aliases,names]=await Promise.all([
-  db.from("taphoa_products").select("product_code,product_name,is_active,deleted_at,retail_unit")
+  db.from("taphoa_products").select("product_code,product_name,is_active,deleted_at,retail_unit,input_price_basis,input_price_vnd")
     .eq("is_active",true).is("deleted_at",null).limit(1200),
   db.from("chat_ncc_product_aliases").select("alias_key,invoice_name,product_code").limit(3000),
   db.from("chat_ncc_product_vietnamese_names").select("product_code,vietnamese_name").limit(1200)
@@ -178,7 +178,9 @@ async function handleCatalog(){
  return json({ok:true,products:identity.products.map((p:any)=>({
   product_code:p.product_code,product_name:p.product_name,
   vietnamese_name:names.get(String(p.product_code))||null,
-  retail_unit:p.retail_unit||null
+  retail_unit:p.retail_unit||null,
+  input_price_basis:p.input_price_basis||null,
+  input_price_vnd:p.input_price_vnd==null?null:Number(p.input_price_vnd)
  }))});
 }
 async function handleLinkProduct(adminId:string,body:any){

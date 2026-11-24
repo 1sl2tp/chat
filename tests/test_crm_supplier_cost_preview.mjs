@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import {previewCostChange as preview} from '../supplier-invoice-core.mjs';
+const base={oldCostVnd:10000,newUnitPriceVnd:120000,unitFactor:10,unitVerified:true};
+assert.equal(preview(base).status,'review');
+assert.equal(preview(base).deltaVnd,2000);
+assert.equal(preview({...base,newUnitPriceVnd:121000}).reason,'price_jump');
+assert.equal(preview({...base,unitVerified:false}).reason,'unverified_unit_or_price');
+assert.equal(preview({...base,oldCostVnd:0}).reason,'missing_old_cost');
+assert.equal(preview({...base,unitFactor:0}).status,'manual');
+assert.equal(preview({...base,newUnitPriceVnd:120001}).reason,'invalid_normalized_cost');
+assert.equal(preview({...base,newUnitPriceVnd:80000}).deltaVnd,-2000);
+console.log('CRM supplier cost preview OK');
+
+import {reviewCostApproval as review} from '../supplier-invoice-core.mjs';
+const approval={...base,productCode:'SP001',linkedProductCode:'SP001',invoiceVerified:true,currentCostVnd:10000};
+assert.equal(review(approval).status,'ready_for_approval');
+assert.equal(review({...approval,linkedProductCode:'SP002'}).reason,'product_link_required');
+assert.equal(review({...approval,invoiceVerified:false}).reason,'invoice_review_required');
+assert.equal(review({...approval,currentCostVnd:11000}).reason,'stale_catalog_cost');
+assert.equal(review({...approval,newUnitPriceVnd:130000}).status,'blocked');
+assert.equal(review({...approval,newUnitPriceVnd:130000,acceptPriceJump:true}).status,'ready_for_approval');
+assert.equal(review({...approval,unitVerified:false,acceptPriceJump:true}).status,'blocked');

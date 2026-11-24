@@ -787,7 +787,7 @@ function renderOverview(rows=[]){
   if(!host)return;
   host.replaceChildren();
 
-  const summaries=rows.map(rowSummary).filter(summary=>summary.codeCount>0);
+  const summaries=rows.filter(row=>window.V21ContactDirectoryAdmin?.getContactGroup?.(row?.customer_id)==='customer').map(rowSummary).filter(summary=>summary.codeCount>0);
   const header=node('div','work-summary-header');
   const title=node('div','work-summary-header-title');
   const heading=node('strong','work-summary-heading','Tổng hợp');
@@ -886,7 +886,7 @@ function renderCustomerDetail(row,contact){
   else all.dataset.workSummaryBack='overview';
   const title=node('div','work-summary-header-title');
   title.append(node('strong','work-summary-heading',row?.display_name||row?.username||contact?.name||'Khách hàng'));
-  title.append(node('span','work-summary-subheading',`${remainingRecords.length} mã · ${formatNumber(remainingProductCount)} sản phẩm`));
+  title.append(node('span','work-summary-subheading',`${remainingRecords.length} mã chờ · ${allRecords.length-remainingRecords.length} mã đã đánh dấu · ${formatNumber(remainingProductCount)} SL chờ`));
   header.append(all,title);
   host.append(header);
 
@@ -899,28 +899,91 @@ function renderCustomerDetail(row,contact){
   }
 
   const body=node('div','work-summary-body work-summary-detail');
-  const list=node('ol','work-summary-list');
-  records.forEach(record=>list.append(renderDetailItem(record,customerId)));
-  body.append(list);
+  for(const [label,items] of [
+    ['Chờ xử lý',records.filter(record=>!record.completed)],
+    ['Đã đánh dấu',records.filter(record=>record.completed)]
+  ]){
+    if(!items.length)continue;
+    const section=node('section','work-summary-status-section');
+    section.append(node('h3','work-summary-subheading',label+' · '+items.length));
+    const list=node('ol','work-summary-list');
+    items.forEach(record=>list.append(renderDetailItem(record,customerId)));
+    section.append(list);
+    body.append(section);
+  }
   host.append(body);
 }
 
 function openOverviewCustomer(customerId){
   const id=String(customerId||'');
   const row=rowsCache.find(item=>String(item?.customer_id||'')===id)||null;
-  if(!id||!row)return false;
+  if(!id||!row||window.V21ContactDirectoryAdmin?.getContactGroup?.(id)!=='customer')return false;
   selectedWorkCustomerId=id;
   forceOverview=false;
   renderCustomerDetail(row,{id,name:row.display_name||row.username||'Khách hàng'});
   return true;
 }
 
+function renderSupplierContext(contact){
+  const host=root();
+  if(!host)return;
+  host.replaceChildren();
+  const header=node('div','work-summary-header work-summary-detail-header');
+  const back=node('button','work-summary-all',workDetailBackMode()==='conversation'?'Quay lại':'Tất cả');
+  back.type='button';
+  back.dataset.workSummaryAll='true';
+  back.dataset.workSummaryBack=workDetailBackMode();
+  const title=node('div','work-summary-header-title');
+  title.append(node('strong','work-summary-heading',contact?.name||'Nhà cung cấp'));
+  title.append(node('span','work-summary-subheading','NCC · Nhập hàng'));
+  header.append(back,title);
+  host.append(header);
+  const body=node('div','work-summary-body work-summary-detail');
+  const room=window.V21NccAiRoom;
+  const launch=node('button','work-summary-all','Mở nhập hàng NCC');
+  launch.type='button';
+  launch.disabled=typeof room?.open!=='function';
+  launch.addEventListener('click',()=>{if(snapshot().account?.role==='admin')void room?.open?.();});
+  body.append(launch);
+  body.append(node('div','work-summary-state work-summary-state-muted','Kho phiếu nhập chung của Admin. Chưa lọc theo NCC đang chat; chưa đồng bộ giá bán.'));
+  host.append(body);
+}
+
 function renderCurrent(){
+  const current=activeContact();
+  const auth=snapshot();
+  if(auth.state!=='AUTHENTICATED'||auth.account?.role!=='admin'){
+    root()?.replaceChildren();
+    return;
+  }
+  if(!forceOverview&&!selectedWorkCustomerId&&current?.id){
+    const group=window.V21ContactDirectoryAdmin?.getContactGroup?.(current.id);
+    if(group==='ncc'){
+      renderSupplierContext(current);
+      return;
+    }
+    if(group!=='customer'){
+      const host=root();
+      if(!host)return;
+      host.replaceChildren();
+      const back=node('button','work-summary-all','Tất cả');
+      back.type='button';
+      back.dataset.workSummaryAll='true';
+      back.dataset.workSummaryBack=workDetailBackMode();
+      host.append(back,node('div','work-summary-state work-summary-state-muted',
+        group==null?'Chưa xác định nhóm đối tượng.':'Đối tượng này không thuộc nhóm khách hàng.'));
+      return;
+    }
+  }
   // WORK-149: after Work-only data has been cleared, never retain a stale
   // selected customer detail from a previous render/session.
   // Keep Chat's selected contact and directory scroll entirely untouched.
   if(!rowsCache.length){
     selectedWorkCustomerId='';
+    if(!forceOverview&&current&&window.V21ContactDirectoryAdmin?.getContactGroup?.(current.id)==='customer'){
+      renderCustomerDetail(null,current);
+      return;
+    }
     renderOverview([]);
     return;
   }
@@ -938,6 +1001,15 @@ function renderCurrent(){
   const context=selectedWorkCustomerId
     ?{id:targetId,name:row?.display_name||row?.username||'Khách hàng'}
     :contact;
+  if(!row){
+    const group=window.V21ContactDirectoryAdmin?.getContactGroup?.(targetId);
+    if(!selectedWorkCustomerId&&contact&&group==='customer'){
+      renderCustomerDetail(null,contact);
+      return;
+    }
+    renderOverview(rowsCache);
+    return;
+  }
   renderCustomerDetail(row,context);
 }
 
@@ -1100,6 +1172,9 @@ document.addEventListener('v21-auth-state',()=>{
     showMobileDirectory('auth-directory');
   }
   void refresh('auth-state');
+});
+document.addEventListener('v21-contact-groups-ready',()=>{
+  if(snapshot().state==='AUTHENTICATED'&&snapshot().account?.role==='admin'&&shellSnapshot().route==='work')renderCurrent();
 });
 document.addEventListener('v21-active-contact-change',event=>{
   selectedWorkCustomerId='';
