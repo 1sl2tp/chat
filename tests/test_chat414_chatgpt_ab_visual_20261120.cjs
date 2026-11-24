@@ -46,8 +46,10 @@ assert(css.includes('background:var(--cgpt-composer-surface-primary)!important;'
  'single composer surface must not use disconnected sub-capsules');
 assert(!css.includes('grid-column:2 / 4;')&&!css.includes('grid-template-columns:'),
  'CHAT-444 must not create a second painted pill or replace stable grid tracks');
-assert(mobile.includes('grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);'),
- 'soft keyboard and multiline composer retain their source owner');
+assert(mobile.includes('grid-template-rows:auto auto minmax(40px,auto) minmax(var(--ui-control-touch,44px),auto);') &&
+ mobile.includes('grid-column:1 / -1;') &&
+ mobile.includes('grid-row:4;'),
+ 'full-width native multiline editor and a permanent footer rail retain the keyboard source owner');
 assert(!/position\s*:\s*(?:fixed|sticky)|(?:overflow-y|scroll-snap-type|scroll-behavior)\s*:|scrollTop\s*=/.test(css),
  'visual layer may not own scroll/keyboard positioning');
 for(const symbol of ['function renderWindow(', 'function appendScrollPolicy(',
