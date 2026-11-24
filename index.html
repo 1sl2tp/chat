@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.80">
-<meta name="app-build-id" content="681f1511674e26d6303eb02a97ac4ff90554137e9fcd512697c283619599c23c">
+<meta name="app-release-version" content="V21.72.81">
+<meta name="app-build-id" content="e31ffbfb0aac82aa0f1e444df91bf2a12c0c2db24d5f4d255dc5d8d324989079">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1895,6 +1895,17 @@
 
 @media(hover:none),(pointer:coarse){
   .work-summary-item{--work-summary-check-size:44px;}
+}
+
+
+/* CHAT-443: one shared icon in the customer Work header; no new action. */
+.work-summary-heading>.work-summary-heading-icon{
+  display:inline-block;
+  width:16px;
+  height:16px;
+  margin-inline-end:6px;
+  vertical-align:-2px;
+  pointer-events:none;
 }
 
 </style>
@@ -6924,6 +6935,33 @@ body.ncc-ai-room-open{overflow:hidden}
   display:block;
   width:var(--ui-icon-20);
   height:var(--ui-icon-20);
+}
+
+
+/* CHAT-443 / Chat CRM: decoration only. The parent button still owns
+   the tap, role, focus, permission checks and action. Shared 2027 SVG source
+   is served locally; no icon CDN, second component owner or runtime fetch. */
+#appShell[data-ui-foundation="v1"] .crm-ui-icon{
+  display:inline-block;
+  width:20px;
+  height:20px;
+  flex:0 0 auto;
+  vertical-align:middle;
+  color:inherit;
+  pointer-events:none;
+}
+#appShell[data-ui-foundation="v1"] .top-mode-tab .crm-tab-icon{
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+}
+#appShell[data-ui-foundation="v1"] .top-mode-tab{
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+}
+#appShell[data-ui-foundation="v1"] .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]>.crm-tab-icon{
+  display:none;
 }
 
 </style>
@@ -14495,14 +14533,12 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   box-shadow:none;
 }
 
-/* Mobile Composer: the same existing stable 4-track grid, but its three
-   visually independent controls now read + / input-with-mic / send.
-   ::before paints behind editor+mic; it does NOT take focus, change tracks,
-   reposition the dock or intercept keyboard/voice interactions. */
+/* CHAT-444 · iPhone side-by-side reference: ONE parent capsule for
+   Plus | Editor | Mic | Send, matching ChatGPT's visual reading grammar.
+   CHAT-398 retains the only four-column grid, stable last-row controls and
+   all existing handlers. No extra DOM, viewport, scroll or business owner. */
 @media(max-width:63.999rem){
-  /* PA11.4: typing instructions stay accessible to screen readers but do not
-     occupy the scarce mobile composer row. The hint remains in the DOM;
-     keyboard shortcuts, actions, editor size and audio state are unchanged. */
+  /* PA11.4: keep the hint accessible, without occupying visible typing space. */
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
   #composerShell #composerHint {
@@ -14516,43 +14552,29 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
     clip-path:inset(50%);
     border:0;
   }
+  /* Use ComposerShell itself as the single pill. The old ::before nested
+     capsule made Plus and Send look disconnected from the input. */
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
   #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]){
-    background:transparent!important;
-    border-color:transparent!important;
+    background:var(--cgpt-composer-surface-primary)!important;
+    border-color:color-mix(in srgb,var(--theme-content-secondary) 20%,transparent)!important;
+    border-radius:999px!important;
     box-shadow:none!important;
-    padding:2px 0!important;
+    padding:2px var(--ui-composer-inner-inset,4px)!important;
   }
+  /* Editor focus belongs to the one surface; plus/mic/send alone never
+     trigger the editor ring. The selector changes paint, not geometry. */
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
-  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"])::before{
-    content:"";
-    box-sizing:border-box;
-    grid-column:2 / 4;
-    grid-row:3;
-    align-self:stretch;
-    min-height:44px;
-    z-index:0;
-    border:1px solid color-mix(in srgb,var(--theme-content-secondary) 17%,transparent);
-    border-radius:26px;
-    background:var(--theme-surface-secondary);
-    pointer-events:none;
-  }
-  /* CHAT-433 · 2027/V46 design primitive: focus belongs to the INPUT slot.
-     The existing composer ::before paints only; this focus ring does not
-     change grid tracks, hit targets, viewport, scroll or microphone behavior.
-     :focus-visible avoids a misleading editor ring when + or Send is focused. */
-  #appShell[data-auth-state="authenticated"][data-route="chat"]
-  #stageLayout:not([data-bank-report-active="true"])
-  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]):has(#editor:focus-visible)::before{
-    border-color:color-mix(in srgb,var(--theme-content-accent,#2563eb) 50%,var(--theme-border-default));
-    box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-content-accent,#2563eb) 16%,transparent);
+  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]):has(#editor:focus-visible){
+    border-color:color-mix(in srgb,var(--theme-content-accent,#2563eb) 48%,var(--theme-border-default))!important;
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-content-accent,#2563eb) 13%,transparent)!important;
   }
   @media(forced-colors:active){
     #appShell[data-auth-state="authenticated"][data-route="chat"]
     #stageLayout:not([data-bank-report-active="true"])
-    #composerShell:has(#editor:focus-visible)::before{
+    #composerShell:has(#editor:focus-visible){
       outline:2px solid Highlight;
       outline-offset:1px;
     }
@@ -14567,7 +14589,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   #stageLayout:not([data-bank-report-active="true"])
   #composerShell #composer-plus-btn{
     border-radius:999px;
-    background:var(--theme-surface-secondary)!important;
+    background:transparent!important;
     color:var(--theme-content-primary);
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"]
@@ -14876,9 +14898,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
           <span class="shell-menu-unread-dot" data-menu-unread-dot hidden aria-hidden="true"></span>
         </button>
 
-        <div class="top-mode-switch" role="tablist" aria-label="Trò chuyện và ảnh">
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><span data-chat-tab-label>Trò chuyện</span></button>
-          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="photos" data-nav-target="photos">Ảnh</button>
+        <div class="top-mode-switch" role="tablist" aria-label="Trò chuyện và ảnh" data-crm-tab-owner="conversation-navigation">
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="true" data-top-tab="chat" data-nav-target="chat"><span class="top-mode-contact-avatar" data-chat-tab-avatar hidden></span><svg class="crm-ui-icon crm-tab-icon" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-users"></use></svg><span data-chat-tab-label>Trò chuyện</span></button>
+          <button type="button" class="top-mode-tab" role="tab" aria-selected="false" data-top-tab="photos" data-nav-target="photos"><svg class="crm-ui-icon crm-tab-icon" aria-hidden="true" focusable="false"><use data-crm-secondary-tab-icon href="./ui-library/icons-2027.svg#ui-icon-image"></use></svg><span data-crm-secondary-tab-label>Ảnh</span></button>
         </div>
 
         <div class="call-focus-slot" data-call-focus-slot data-call-ui-state="idle">
@@ -14892,30 +14914,30 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
             </button>
             <div id="chatHeaderActionMenu" class="chat-header-action-menu" role="menu" aria-label="Tùy chọn hội thoại" hidden>
               <button type="button" role="menuitem" data-chat-header-action="profile" hidden>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="3"/><path d="M4 19c0-4 2-6 6-6m3 4 6-6 2 2-6 6-3 .7Z"/></svg><span>Thông tin liên hệ</span>
+                <svg class="crm-ui-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-edit"></use></svg><span>Thông tin liên hệ</span>
               </button>
               <button type="button" role="menuitem" data-chat-header-action="phone" hidden>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h10A2.5 2.5 0 0 1 19.5 6v12A2.5 2.5 0 0 1 17 20.5H7A2.5 2.5 0 0 1 4.5 18V6A2.5 2.5 0 0 1 7 3.5Z"/><path d="M9 6.5h6M10.5 17.5h3"/></svg><span>Số điện thoại khách hàng</span>
+                <svg class="crm-ui-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-phone"></use></svg><span>Số điện thoại khách hàng</span>
               </button>
               <button type="button" role="menuitem" data-chat-header-action="photos">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.5"/><path d="m4.5 17 5.5-5.5 3.5 3.5 2.5-2.5 4 4"/></svg><span>Ảnh đã chia sẻ</span>
+                <svg class="crm-ui-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-image"></use></svg><span>Ảnh đã chia sẻ</span>
               </button>
               <!-- CHAT-384: business/search actions live in the EXISTING
                    conversation overflow on phones, not a second fixed bar. -->
               <button type="button" role="menuitem" data-chat-header-action="search">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.7"/><path d="m15.6 15.6 4.4 4.4"/></svg><span>Tìm trong hội thoại</span>
+                <svg class="crm-ui-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-search"></use></svg><span>Tìm trong hội thoại</span>
               </button>
               <button type="button" role="menuitem" data-chat-header-action="cash" hidden>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="12" cy="12" r="3"/></svg><span>Thu tiền</span>
+                <svg class="crm-ui-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-wallet"></use></svg><span>Thu tiền</span>
               </button>
               <button type="button" role="menuitem" data-chat-header-action="debt" hidden>
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5h8l3 3V21l-3-2-4 2-4-2-3 2V3.5h3Z"/><path d="M9 9h7M9 13h7"/></svg><span>Gửi đối chiếu công nợ</span>
+                <svg class="crm-ui-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-receipt"></use></svg><span>Gửi đối chiếu công nợ</span>
               </button>
               <button type="button" role="menuitem" data-chat-header-action="audio">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 4.5 10 8l-1.8 2.2c1.2 2.5 3.1 4.4 5.6 5.6L16 14l3.5 2.8-.9 2.7c-.3.8-1.1 1.3-2 1.2C9.4 19.8 4.2 14.6 3.3 7.4c-.1-.9.4-1.7 1.2-2l2.7-.9Z"/></svg><span>Gọi qua Chat</span>
+                <svg class="crm-ui-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-phone"></use></svg><span>Gọi qua Chat</span>
               </button>
               <button type="button" role="menuitem" data-chat-header-action="video" disabled aria-disabled="true" title="Gọi video chưa được hỗ trợ">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2.5"/><path d="m16 10 5-3v10l-5-3"/></svg><span>Gọi video <small>Chưa hỗ trợ</small></span>
+                <svg class="crm-ui-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-video"></use></svg><span>Gọi video <small>Chưa hỗ trợ</small></span>
               </button>
             </div>
           </div>
@@ -15450,6 +15472,23 @@ function markup(name,options={}){
   return customMarkup(key,{size});
 }
 
+// CHAT-443: opt-in bridge to the unchanged, same-origin 2027 icon sprite.
+// CRM controls own the click/label; SVG is only decorative. Existing CHAT
+// markup() remains unchanged for the ChatGPT-aligned composer/call controls.
+function libraryMarkup(name,{size=20}={}){
+  const key=String(name||'');
+  if(!/^[a-z0-9-]+$/.test(key))return '';
+  const px=Math.max(12,Math.min(32,Number(size)||20));
+  return '<svg class="crm-ui-icon" width="'+px+'" height="'+px+'" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-'+escAttr(key)+'"></use></svg>';
+}
+function libraryNode(name,options={}){
+  const html=libraryMarkup(name,options);
+  if(!html)return null;
+  const holder=document.createElement('span');
+  holder.innerHTML=html;
+  return holder.firstElementChild;
+}
+
 function node(name,options={}){
   const html=markup(name,options);
   if(!html)return null;
@@ -15458,7 +15497,7 @@ function node(name,options={}){
   return holder.firstElementChild;
 }
 
-window.V21Icons=Object.freeze({markup,node});
+window.V21Icons=Object.freeze({markup,node,libraryMarkup,libraryNode});
 })();
 
 </script>
@@ -17903,9 +17942,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.80 runtime: '+message;
+    runtimeError.textContent='V21.72.81 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.80]',error);
+    console.error('[ChatScreenModule V21.72.81]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -18071,7 +18110,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.80',
+  releaseVersion:'V21.72.81',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -26981,7 +27020,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.80',
+  version:'V21.72.81',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -31741,7 +31780,12 @@ function renderOverview(rows=[]){
   const summaries=rows.map(rowSummary).filter(summary=>summary.codeCount>0);
   const header=node('div','work-summary-header');
   const title=node('div','work-summary-header-title');
-  title.append(node('strong','work-summary-heading','Tổng hợp'));
+  const heading=node('strong','work-summary-heading','Tổng hợp');
+  // The right CRM region is customer work, not a second messaging input.
+  // Reuse one canonical icon while keeping the summary list/sort owner intact.
+  const headingIcon=window.V21Icons?.libraryNode?.('clipboard',{size:16});
+  if(headingIcon){headingIcon.classList.add('work-summary-heading-icon');heading.prepend(headingIcon);}
+  title.append(heading);
   title.append(node('span','work-summary-subheading',`${summaries.length} khách có hàng`));
   header.append(title);
   host.append(header);
@@ -44652,7 +44696,14 @@ function syncMobileDirectoryHeader(){
   if(!switcher||!chat||!right)return false;
   const visible=mobileDirectoryHeaderVisible();
   const wanted=visible?'Công việc':'Ảnh';
-  if(right.textContent!==wanted)right.textContent=wanted;
+  // CHAT-443: keep the canonical SVG child mounted when the SAME navigation
+  // control switches between CRM Work and a conversation's shared photos.
+  // Replacing the button's textContent would destroy its shared icon slot.
+  const label=right.querySelector?.('[data-crm-secondary-tab-label]');
+  if(label){if(label.textContent!==wanted)label.textContent=wanted;}
+  else if(right.textContent!==wanted)right.textContent=wanted;
+  const icon=right.querySelector?.('use[data-crm-secondary-tab-icon]');
+  if(icon)icon.setAttribute('href','./ui-library/icons-2027.svg#ui-icon-'+(visible?'clipboard':'image'));
   right.setAttribute('aria-label',wanted);
   // The second control is an Admin work switch on the directory, a real
   // Photos route only after entering a conversation.
