@@ -56,9 +56,9 @@ assert(ab.includes('border-radius:999px!important;'),
  'composer optical edge belongs to the ComposerShell parent');
 assert(ab.includes(':has(#editor:focus-visible){'),
  'the single capsule uses editor-only focus, not duplicate surface');
-assert(source.includes('<meta name="app-release-version" content="V21.72.80">'));
-assert(sw.includes("RELEASE_VERSION='V21.72.80'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui441-ios-multi-photo-selection-20261123'"));
+assert(source.includes('<meta name="app-release-version" content="V21.72.81">'));
+assert(sw.includes("RELEASE_VERSION='V21.72.81'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui444-reference-composer-20261124'"));
 assert(shell.includes('const WORK_ENABLED=false;'),'Work remains dormant');
 for(const w of [320,360,390,500]){
  const inputWidth=w-24-8-(44*3)-(8*3);
