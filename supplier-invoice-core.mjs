@@ -84,3 +84,20 @@ export function previewInvoice(raw,products=[],aliases=[],senderId=''){
     matched:rows.filter(x=>x.status==='matched').length,
     manual:rows.filter(x=>x.status!=='matched').length};
 }
+
+ // CRM price review only: never writes catalog or order data.
+export function previewCostChange({oldCostVnd,newUnitPriceVnd,unitFactor,unitVerified=false}={}){
+  const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>0;
+  if(unitVerified!==true||!valid(unitFactor)||!valid(newUnitPriceVnd))
+    return {status:'manual',reason:'unverified_unit_or_price'};
+  const newCostVnd=newUnitPriceVnd/unitFactor;
+  if(!valid(newCostVnd)||!Number.isSafeInteger(newCostVnd))
+    return {status:'manual',reason:'invalid_normalized_cost'};
+  if(!valid(oldCostVnd)||!Number.isSafeInteger(oldCostVnd))
+    return {status:'manual',reason:'missing_old_cost',newCostVnd};
+  const deltaVnd=newCostVnd-oldCostVnd;
+  const deltaPercent=deltaVnd/oldCostVnd*100;
+  return {status:Math.abs(deltaPercent)>20?'manual':'review',
+    reason:Math.abs(deltaPercent)>20?'price_jump':null,
+    oldCostVnd,newCostVnd,deltaVnd,deltaPercent};
+}
