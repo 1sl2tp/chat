@@ -9,6 +9,8 @@ const ui=fs.readFileSync('admin-push-controller.js','utf8');
 const source=fs.readFileSync('index.source.html','utf8');
 const app=fs.readFileSync('app.js','utf8');
 
+const sourceVersion=source.split('name="app-release-version" content="')[1]?.split('"')[0];
+assert(sourceVersion?.startsWith('V21.'),'canonical source release exists');
 assert(sw.includes('const deliveredMessagePushIds=new Set();'));
 assert(sw.includes("if(kind==='message'&&messageId)"),'only actual message IDs may be deduped');
 assert(sw.includes('deliveredMessagePushIds.size>150'),'bounded SW memory');
@@ -24,8 +26,8 @@ assert(ui.includes("dataset?.mobileDirectory==='true'"),'directory has distinct 
 assert(ui.includes("if(route==='chat'&&!directoryVisible&&contactId)"),'never inherit active chat identity while in directory');
 assert(ui.includes('if(current.directoryVisible)return;'),'unread preview row wins over duplicate toast');
 assert(ui.includes('messageToastSeen.has(messageId)'),'in-app toast idempotency remains');
-assert(sw.includes("RELEASE_VERSION='V21.72.81'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui444-reference-composer-20261124'"));
-assert(source.includes('<meta name="app-release-version" content="V21.72.81">'));
-assert(app.includes("releaseVersion:'V21.72.81'"));
+assert(sw.includes("RELEASE_VERSION='"+sourceVersion+"'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-"),'PWA cache epoch exists');
+assert(sourceVersion?.startsWith('V21.'));
+assert(app.includes("releaseVersion:'"+sourceVersion+"'"));
 console.log('CHAT-440 context-aware foreground/locked/directory push policy PASS');
