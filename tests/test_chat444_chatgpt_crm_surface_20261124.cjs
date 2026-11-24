@@ -11,7 +11,7 @@ const sw=read('sw.js');
 const app=read('app.js');
 const sprite=read('ui-library/icons-2027.svg');
 const version=html.match(/<meta name="app-release-version" content="([^"]+)"/)?.[1];
-assert.ok(/^V\\d+\\.\\d+\\.\\d+$/.test(version),'canonical release meta must exist');
+assert.ok(/^V\d+\.\d+\.\d+$/.test(version),'canonical release meta must exist');
 assert.ok(sw.includes("const RELEASE_VERSION='"+version+"'"));
 assert.ok(app.includes("releaseVersion:'"+version+"'"));
 const epoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1];
