@@ -100,6 +100,7 @@ jobs:
           node --check ui-icons.js
           node --check contact-directory-admin.js
           node tests/test_chat443_crm_icon_owner_20261124.cjs
+          node tests/test_chat444_chatgpt_crm_surface_20261124.cjs
       - name: CHAT-440 contextual iOS PWA message and directory notification dedup
         run: |
           node --check sw.js
