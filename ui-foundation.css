@@ -143,6 +143,6 @@
   justify-content:center;
   gap:5px;
 }
-#appShell[data-ui-foundation="v1"] .top-mode-tab[data-top-tab="chat"][data-contact-identity="true"]>.crm-tab-icon{
+#appShell[data-ui-foundation="v1"] .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]>.crm-tab-icon{
   display:none;
 }
