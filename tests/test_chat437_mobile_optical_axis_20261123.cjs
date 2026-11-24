@@ -28,7 +28,7 @@ assert(narrow.includes('margin-inline-start:0!important;'));
 assert(narrow.includes('margin-inline-end:0!important;'));
 assert(narrow.includes('padding-inline:0!important;'),
  'outer thread owns its single gutter; media/rows do not add a second gutter');
-const composer=refresh.slice(refresh.indexOf('/* ChatGPT-like adaptive dock:'),refresh.indexOf('/* UI-142 — On mobile'));
+const composer=refresh.slice(refresh.indexOf('/* CHAT-446: permanent two-row mobile Composer.'),refresh.indexOf('/* UI-142 — On mobile'));
 assert(composer.includes('gap:0 var(--ui-composer-action-gap,8px);'));
 assert(composer.includes('padding:0 10px!important;'),'symmetric content inset');
 assert(composer.includes('grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px)'));
