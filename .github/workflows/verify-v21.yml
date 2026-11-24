@@ -339,6 +339,8 @@ jobs:
           node tests/test_nav284_mobile_back_to_directory_20261111.cjs
       - name: CHAT-445 iOS long-draft keyboard and composer geometry
         run: node tests/test_chat445_ios_composer_geometry_20261124.cjs
+      - name: CHAT-446 full-width iPhone editor / stable footer and keyboard geometry
+        run: node tests/test_chat446_stacked_composer_geometry_20261124.cjs
       - name: CHAT-338 approved balanced mobile conversation visual contract
         run: |
           node tests/test_chat338_balanced_mobile_conversation_20261113.cjs
