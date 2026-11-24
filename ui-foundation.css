@@ -119,3 +119,30 @@
   width:var(--ui-icon-20);
   height:var(--ui-icon-20);
 }
+
+
+/* CHAT-443 / Chat CRM: decoration only. The parent button still owns
+   the tap, role, focus, permission checks and action. Shared 2027 SVG source
+   is served locally; no icon CDN, second component owner or runtime fetch. */
+#appShell[data-ui-foundation="v1"] .crm-ui-icon{
+  display:inline-block;
+  width:20px;
+  height:20px;
+  flex:0 0 auto;
+  vertical-align:middle;
+  color:inherit;
+  pointer-events:none;
+}
+#appShell[data-ui-foundation="v1"] .top-mode-tab .crm-tab-icon{
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+}
+#appShell[data-ui-foundation="v1"] .top-mode-tab{
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+}
+#appShell[data-ui-foundation="v1"] .top-mode-switch[data-contact-identity="true"] .top-mode-tab[data-top-tab="chat"]>.crm-tab-icon{
+  display:none;
+}

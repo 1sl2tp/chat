@@ -6,7 +6,7 @@ function chatPushDisplayPreview(value){
  const raw=String(value||'');
  try{return self.V21ChatMessageCase?.previewCase?.(raw)||raw;}catch{return raw;}
 }
-const RELEASE_VERSION='V21.72.80';
+const RELEASE_VERSION='V21.72.81';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
@@ -44,7 +44,8 @@ const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // CHAT-435: rotate PUBLIC shell for the 2027/V46 directory redesign only.
 // CHAT-437: refresh PUBLIC layout/reading rail and rounded composer only.
 // Keep private messages, drafts, auth and outbox caches intact.
-const SHELL_CACHE_EPOCH='pwa-chat-ui441-ios-multi-photo-selection-20261123';
+// CHAT-444: rotate ONLY the public shell, retain drafts, private messages and outbox.
+const SHELL_CACHE_EPOCH='pwa-chat-ui444-reference-composer-20261124';
 const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH;
 const AVATAR_CACHE_NAME='taphoa-chat-avatars-v1';
 const SUPABASE_ASSET_HOST_RE=/^[a-z0-9]+\.supabase\.co$/i;
@@ -68,7 +69,7 @@ async function cachedBootVendorScript(request){
   }
   return fresh;
 }
-const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png','./icons/chat-notification-icon-192-v4.png','./icons/chat-notification-badge-96-v4.png','./chat-message-case.js'];
+const SHELL=['./','./manifest.webmanifest','./icons/chat-app-180-v3.png','./icons/chat-app-192-v3.png','./icons/chat-app-512-v3.png','./icons/chat-maskable-512-v3.png','./icons/chat-notification-icon-192-v4.png','./icons/chat-notification-badge-96-v4.png','./chat-message-case.js','./ui-library/icons-2027.svg'];
 const adminPushClientState=new Map();
 let adminPushBadgeCount=0;
 // CHAT-440: a retried Web Push for one immutable message must not ring twice.

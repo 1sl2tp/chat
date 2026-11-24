@@ -24,8 +24,8 @@ assert(ui.includes("dataset?.mobileDirectory==='true'"),'directory has distinct 
 assert(ui.includes("if(route==='chat'&&!directoryVisible&&contactId)"),'never inherit active chat identity while in directory');
 assert(ui.includes('if(current.directoryVisible)return;'),'unread preview row wins over duplicate toast');
 assert(ui.includes('messageToastSeen.has(messageId)'),'in-app toast idempotency remains');
-assert(sw.includes("RELEASE_VERSION='V21.72.80'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui441-ios-multi-photo-selection-20261123'"));
-assert(source.includes('<meta name="app-release-version" content="V21.72.80">'));
-assert(app.includes("releaseVersion:'V21.72.80'"));
+assert(sw.includes("RELEASE_VERSION='V21.72.81'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui444-reference-composer-20261124'"));
+assert(source.includes('<meta name="app-release-version" content="V21.72.81">'));
+assert(app.includes("releaseVersion:'V21.72.81'"));
 console.log('CHAT-440 context-aware foreground/locked/directory push policy PASS');

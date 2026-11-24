@@ -38,12 +38,14 @@ assert(css.includes(':not([data-shared-list="true"])'),
  'shared sender-neutral item tables must stay independently centered');
 assert(css.includes('#messageWindow .message-day-order-wrap .day-order-summary-card'),
  'KH day summaries must remain a separate surface');
-assert(css.includes('grid-column:2 / 4;')&&css.includes('grid-row:3;'),
- 'input pill must paint only behind the existing editor and mic');
-assert(css.includes('pointer-events:none;'),
- 'paint layer must never intercept input or keyboard');
-assert(css.includes('grid-column:2 / 4;')&&!css.includes('grid-template-columns:'),
- 'do not replace the CHAT-398 stable composer tracks');
+assert(css.includes('/* CHAT-444 · iPhone side-by-side reference: ONE parent capsule'),
+ 'one CRM composer capsule must match the ChatGPT reference');
+assert(css.includes('border-radius:999px!important;'),
+ 'entire plus/editor/mic/send parent owns the single pill');
+assert(css.includes('background:var(--cgpt-composer-surface-primary)!important;'),
+ 'single composer surface must not use disconnected sub-capsules');
+assert(!css.includes('grid-column:2 / 4;')&&!css.includes('grid-template-columns:'),
+ 'CHAT-444 must not create a second painted pill or replace stable grid tracks');
 assert(mobile.includes('grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);'),
  'soft keyboard and multiline composer retain their source owner');
 assert(!/position\s*:\s*(?:fixed|sticky)|(?:overflow-y|scroll-snap-type|scroll-behavior)\s*:|scrollTop\s*=/.test(css),

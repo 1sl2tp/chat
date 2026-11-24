@@ -189,7 +189,14 @@ function syncMobileDirectoryHeader(){
   if(!switcher||!chat||!right)return false;
   const visible=mobileDirectoryHeaderVisible();
   const wanted=visible?'Công việc':'Ảnh';
-  if(right.textContent!==wanted)right.textContent=wanted;
+  // CHAT-443: keep the canonical SVG child mounted when the SAME navigation
+  // control switches between CRM Work and a conversation's shared photos.
+  // Replacing the button's textContent would destroy its shared icon slot.
+  const label=right.querySelector?.('[data-crm-secondary-tab-label]');
+  if(label){if(label.textContent!==wanted)label.textContent=wanted;}
+  else if(right.textContent!==wanted)right.textContent=wanted;
+  const icon=right.querySelector?.('use[data-crm-secondary-tab-icon]');
+  if(icon)icon.setAttribute('href','./ui-library/icons-2027.svg#ui-icon-'+(visible?'clipboard':'image'));
   right.setAttribute('aria-label',wanted);
   // The second control is an Admin work switch on the directory, a real
   // Photos route only after entering a conversation.

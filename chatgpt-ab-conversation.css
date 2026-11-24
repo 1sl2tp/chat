@@ -106,14 +106,12 @@
   box-shadow:none;
 }
 
-/* Mobile Composer: the same existing stable 4-track grid, but its three
-   visually independent controls now read + / input-with-mic / send.
-   ::before paints behind editor+mic; it does NOT take focus, change tracks,
-   reposition the dock or intercept keyboard/voice interactions. */
+/* CHAT-444 · iPhone side-by-side reference: ONE parent capsule for
+   Plus | Editor | Mic | Send, matching ChatGPT's visual reading grammar.
+   CHAT-398 retains the only four-column grid, stable last-row controls and
+   all existing handlers. No extra DOM, viewport, scroll or business owner. */
 @media(max-width:63.999rem){
-  /* PA11.4: typing instructions stay accessible to screen readers but do not
-     occupy the scarce mobile composer row. The hint remains in the DOM;
-     keyboard shortcuts, actions, editor size and audio state are unchanged. */
+  /* PA11.4: keep the hint accessible, without occupying visible typing space. */
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
   #composerShell #composerHint {
@@ -127,43 +125,29 @@
     clip-path:inset(50%);
     border:0;
   }
+  /* Use ComposerShell itself as the single pill. The old ::before nested
+     capsule made Plus and Send look disconnected from the input. */
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
   #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]){
-    background:transparent!important;
-    border-color:transparent!important;
+    background:var(--cgpt-composer-surface-primary)!important;
+    border-color:color-mix(in srgb,var(--theme-content-secondary) 20%,transparent)!important;
+    border-radius:999px!important;
     box-shadow:none!important;
-    padding:2px 0!important;
+    padding:2px var(--ui-composer-inner-inset,4px)!important;
   }
+  /* Editor focus belongs to the one surface; plus/mic/send alone never
+     trigger the editor ring. The selector changes paint, not geometry. */
   #appShell[data-auth-state="authenticated"][data-route="chat"]
   #stageLayout:not([data-bank-report-active="true"])
-  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"])::before{
-    content:"";
-    box-sizing:border-box;
-    grid-column:2 / 4;
-    grid-row:3;
-    align-self:stretch;
-    min-height:44px;
-    z-index:0;
-    border:1px solid color-mix(in srgb,var(--theme-content-secondary) 17%,transparent);
-    border-radius:26px;
-    background:var(--theme-surface-secondary);
-    pointer-events:none;
-  }
-  /* CHAT-433 · 2027/V46 design primitive: focus belongs to the INPUT slot.
-     The existing composer ::before paints only; this focus ring does not
-     change grid tracks, hit targets, viewport, scroll or microphone behavior.
-     :focus-visible avoids a misleading editor ring when + or Send is focused. */
-  #appShell[data-auth-state="authenticated"][data-route="chat"]
-  #stageLayout:not([data-bank-report-active="true"])
-  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]):has(#editor:focus-visible)::before{
-    border-color:color-mix(in srgb,var(--theme-content-accent,#2563eb) 50%,var(--theme-border-default));
-    box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-content-accent,#2563eb) 16%,transparent);
+  #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]):has(#editor:focus-visible){
+    border-color:color-mix(in srgb,var(--theme-content-accent,#2563eb) 48%,var(--theme-border-default))!important;
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--theme-content-accent,#2563eb) 13%,transparent)!important;
   }
   @media(forced-colors:active){
     #appShell[data-auth-state="authenticated"][data-route="chat"]
     #stageLayout:not([data-bank-report-active="true"])
-    #composerShell:has(#editor:focus-visible)::before{
+    #composerShell:has(#editor:focus-visible){
       outline:2px solid Highlight;
       outline-offset:1px;
     }
@@ -178,7 +162,7 @@
   #stageLayout:not([data-bank-report-active="true"])
   #composerShell #composer-plus-btn{
     border-radius:999px;
-    background:var(--theme-surface-secondary)!important;
+    background:transparent!important;
     color:var(--theme-content-primary);
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"]

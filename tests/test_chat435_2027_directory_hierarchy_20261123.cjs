@@ -61,6 +61,6 @@ assert(owner.includes('#shellNavigationLayer[data-directory-search-active="true"
 assert(!owner.includes('position:fixed'),'no second viewport writer');
 assert(keyboard.includes("owner.kind==='directory'||owner.kind==='message-forward'"));
 assert(dir.includes('restoreDirectoryViewport();'),'directory scroll anchor persists');
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui441-ios-multi-photo-selection-20261123'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui444-reference-composer-20261124'"));
 assert(!/fetch\s*\(|XMLHttpRequest|supabase\./.test(owner),'visual owner never fetches or writes');
 console.log('CHAT-435 V46 directory compact hierarchy, single-line rows and platform safety PASS');

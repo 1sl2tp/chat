@@ -41,6 +41,23 @@ function markup(name,options={}){
   return customMarkup(key,{size});
 }
 
+// CHAT-443: opt-in bridge to the unchanged, same-origin 2027 icon sprite.
+// CRM controls own the click/label; SVG is only decorative. Existing CHAT
+// markup() remains unchanged for the ChatGPT-aligned composer/call controls.
+function libraryMarkup(name,{size=20}={}){
+  const key=String(name||'');
+  if(!/^[a-z0-9-]+$/.test(key))return '';
+  const px=Math.max(12,Math.min(32,Number(size)||20));
+  return '<svg class="crm-ui-icon" width="'+px+'" height="'+px+'" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="./ui-library/icons-2027.svg#ui-icon-'+escAttr(key)+'"></use></svg>';
+}
+function libraryNode(name,options={}){
+  const html=libraryMarkup(name,options);
+  if(!html)return null;
+  const holder=document.createElement('span');
+  holder.innerHTML=html;
+  return holder.firstElementChild;
+}
+
 function node(name,options={}){
   const html=markup(name,options);
   if(!html)return null;
@@ -49,5 +66,5 @@ function node(name,options={}){
   return holder.firstElementChild;
 }
 
-window.V21Icons=Object.freeze({markup,node});
+window.V21Icons=Object.freeze({markup,node,libraryMarkup,libraryNode});
 })();
