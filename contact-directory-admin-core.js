@@ -218,6 +218,7 @@ async function ensureGroups({force=false}={}){
     loadedAdminId=adminId;
     syncDirectoryRows();
     syncAdminGroupControls();
+    document.dispatchEvent(new Event('v21-contact-groups-ready'));
     return true;
   }catch{
     return false;
