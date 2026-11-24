@@ -95,13 +95,6 @@ jobs:
           node --check app.js
           node tests/test_chat441_ios_photo_multiselect_20261123.cjs
 
-      - name: Temporary release parity audit - identify stale exact version assertions
-        run: |
-          echo "::group::Old release strings in test files"
-          git grep -n -F 'V21.72.80' -- tests tools .github || true
-          git grep -n -F 'pwa-chat-ui441-ios-multi-photo-selection-20261123' -- tests tools .github || true
-          echo "::endgroup::"
-
       - name: CHAT-443 Chat CRM canonical icon library and single-owner navigation
         run: |
           node --check ui-icons.js
