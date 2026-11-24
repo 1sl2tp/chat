@@ -169,6 +169,7 @@
     box-sizing:border-box;
   }
 
+  /* ChatGPT-like adaptive dock: one canonical responsive composer frame. */
   /* CHAT-446: permanent two-row mobile Composer. A full-width text row
      stands ABOVE the 44px action rail for 1, 2 and many lines; no mode switch.
      VisualViewport/keyboard placement remains solely in app.js. */
