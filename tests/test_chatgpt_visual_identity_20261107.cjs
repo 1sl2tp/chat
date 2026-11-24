@@ -46,12 +46,12 @@ const incoming=rule(mobile,root+' #messageWindow>.message-row[data-content-kind=
 assert(outgoing.includes('var(--chat-message-sent-bg)!important;')&&outgoing.includes('color:var(--theme-content-primary)!important;'));
 assert(incoming.includes('var(--chat-message-received-bg)!important;')&&incoming.includes('color:var(--theme-content-primary)!important;'));
 const compose=rule(composer,root+' #composerShell');
-assert(compose.includes('grid-template-rows:autoautominmax(var(--ui-control-touch,44px),auto);'),
- 'single composer action and writing row with optional media above');
+assert(compose.includes('grid-template-rows:autoautominmax(40px,auto)minmax(var(--ui-control-touch,44px),auto);'),
+ 'native writing area is full-width above one permanent action row');
 const editor=rule(composer,root+' #editorWrap');
-assert(editor.includes('grid-column:2;')&&editor.includes('grid-row:3;'));
+assert(editor.includes('grid-column:1/-1;')&&editor.includes('grid-row:3;'));
 for(const id of ['composer-plus-btn','composer-mic-btn','send'])
- assert(rule(composer,root+' #'+id).includes('grid-row:3;'),'inline action rail '+id);
+ assert(rule(composer,root+' #'+id).includes('grid-row:4;'),'permanent bottom action rail '+id);
 assert(composer.includes('#composerShell[data-audio-state="RECORDING"]'),'recording geometry preserved');
 assert(composer.includes('#stageLayout[data-keyboard-open="true"]'),'VisualViewport keyboard state unchanged');
 for(const item of ['data-chat-quick="cash"','data-chat-quick="debt"','data-chat-quick="photos"','data-chat-quick="recent"',
@@ -59,4 +59,4 @@ for(const item of ['data-chat-quick="cash"','data-chat-quick="debt"','data-chat-
  assert(html.includes(item),'functional control preserved: '+item);
 assert((/const SHELL_CACHE_EPOCH='pwa-chat-[a-z0-9-]+';/.test(sw) && !sw.includes("const SHELL_CACHE_EPOCH='pwa-chat-multiline-editor-ui273-20261110';")),
  'new public PWA epoch without deleting private caches');
-console.log('UI-256 ChatGPT identity, directory, neutral bubbles, single-row mobile composer and preserved keyboard/voice/business controls PASS');
+console.log('UI-256 ChatGPT identity, directory, neutral bubbles, fixed two-row mobile composer and preserved keyboard/voice/business controls PASS');
