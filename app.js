@@ -9353,7 +9353,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.80',
+  version:'V21.72.81',
   snapshot(){
     return{
       viewportMode:viewport.mode,
