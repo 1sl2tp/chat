@@ -193,12 +193,11 @@ async function openProductLinkEditor(bubble,record,line,refresh){
   feedback.textContent="Chức năng liên kết sản phẩm chưa sẵn sàng.";return;
  }
  try{
-  if(!productCatalog){
-   const result=await api("catalog");
-   if(!Array.isArray(result.products))throw Error("product_identity_unavailable");
-   productCatalog=result.products;
-  }
+  // Refresh catalog on each review; never reuse a previous session's cost.
+  const result=await api("catalog");
   if(!editor.isConnected||owner!==accountSession())return;
+  if(!Array.isArray(result.products))throw Error("product_identity_unavailable");
+  productCatalog=result.products;
   feedback.textContent="Chọn đúng mã SP. Chỉ lưu liên kết tên, không sửa giá vốn.";
   const search=node(editor,"input");
   search.type="search";search.placeholder="Tìm tên hoặc mã sản phẩm TAPHOA";
