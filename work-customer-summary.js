@@ -1153,6 +1153,9 @@ document.addEventListener('v21-auth-state',()=>{
   }
   void refresh('auth-state');
 });
+document.addEventListener('v21-contact-groups-ready',()=>{
+  if(snapshot().state==='AUTHENTICATED'&&snapshot().account?.role==='admin'&&shellSnapshot().route==='work')renderCurrent();
+});
 document.addEventListener('v21-active-contact-change',event=>{
   selectedWorkCustomerId='';
   if(event?.detail?.contact?.id){
