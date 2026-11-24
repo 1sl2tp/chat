@@ -951,6 +951,10 @@ function renderCurrent(){
   // Keep Chat's selected contact and directory scroll entirely untouched.
   if(!rowsCache.length){
     selectedWorkCustomerId='';
+    if(!forceOverview&&current&&window.V21ContactDirectoryAdmin?.getContactGroup?.(current.id)==='customer'){
+      renderCustomerDetail(null,current);
+      return;
+    }
     renderOverview([]);
     return;
   }
@@ -969,6 +973,11 @@ function renderCurrent(){
     ?{id:targetId,name:row?.display_name||row?.username||'Khách hàng'}
     :contact;
   if(!row){
+    const group=window.V21ContactDirectoryAdmin?.getContactGroup?.(targetId);
+    if(!selectedWorkCustomerId&&contact&&group==='customer'){
+      renderCustomerDetail(null,contact);
+      return;
+    }
     renderOverview(rowsCache);
     return;
   }
