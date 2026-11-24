@@ -28,7 +28,9 @@ assert(!/\b(?:position|top|bottom|left|right|grid-template|transform|scroll-beha
 assert(!/\b(?:fetch|XMLHttpRequest|WebSocket|setInterval|setTimeout)\s*\(/.test(block));
 assert(source.includes('id="editor"')&&source.includes('id="composerShell"'));
 assert(source.includes('data-build-source="chatgpt-ab-conversation.css"'));
-assert(mobile.includes('grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);'));
+assert(mobile.includes('grid-template-rows:auto auto minmax(40px,auto) minmax(var(--ui-control-touch,44px),auto);') &&
+ mobile.includes('grid-column:1 / -1;') &&
+ mobile.includes('grid-row:4;'),'full-width editor and fixed footer retain keyboard ownership');
 console.log('CHAT-433 editor-only focus, contrast and keyboard/scroll ownership: PASS');
 
 // PA11.4 regression: mobile hint is visually hidden without removing the

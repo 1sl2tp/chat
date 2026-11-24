@@ -20,12 +20,14 @@ function rule(source,selector){
 const mobile=css.slice(css.indexOf('@media (max-width:63.999rem), (pointer:coarse) {'));
 const narrow=rule(mobile,root+' #composerShell');
 assert(narrow.includes('grid-template-columns:var(--ui-control-touch,44px)minmax(0,1fr)var(--ui-control-touch,44px)var(--ui-control-touch,44px);'));
-assert(narrow.includes('grid-template-rows:autoautominmax(var(--ui-control-touch,44px),auto);'));
-assert(!narrow.includes('grid-row:4'),'no permanently reserved button row');
-for(const [part,column] of [['#composer-plus-btn',1],['#editorWrap',2],['#composer-mic-btn',3],['#send',4]]){
+assert(narrow.includes('grid-template-rows:autoautominmax(40px,auto)minmax(var(--ui-control-touch,44px),auto);'));
+const wrap=rule(mobile,root+' #editorWrap');
+assert(wrap.includes('grid-column:1/-1;')&&wrap.includes('grid-row:3;'),
+ 'editor must span full capsule width above controls');
+for(const [part,column] of [['#composer-plus-btn',1],['#composer-mic-btn',3],['#send',4]]){
  const p=rule(mobile,root+' '+part);
- assert(p.includes('grid-column:'+column+';'),part+' grid column');
- assert(p.includes('grid-row:3;'),part+' shares one visual row');
+ assert(p.includes('grid-column:'+column+';'),part+' fixed footer column');
+ assert(p.includes('grid-row:4;'),part+' stays on bottom row at every line count');
 }
 const editor=rule(mobile,root+' #editor');
 for(const value of ['height:var(--editor-height,40px);','min-height:40px;','max-height:150px;','padding:9px2px!important;'])
