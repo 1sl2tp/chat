@@ -9,8 +9,9 @@ assert(html.includes(hide),'Photos should hide only for the active bank report')
 assert(html.includes(hide+'{\n  display:none!important;'),'Photos must actually be hidden');
 assert(html.includes('body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-switch{\n  grid-template-columns:minmax(0,1fr);'),
  'single remaining Chat tab must fill the header');
-assert(html.includes('data-top-tab="photos" data-nav-target="photos">Ảnh</button>'),
- 'the Photos tab still exists for ordinary conversations');
+assert(html.includes('data-top-tab="photos" data-nav-target="photos"') &&
+ html.includes('data-crm-secondary-tab-label>Ảnh</span>'),
+ 'the same Photos tab still exists, now with a canonical icon, for ordinary conversations');
 assert(js.includes("stage.dataset.bankReportActive=should?'true':'false'"),
  'existing report activation remains the sole display owner');
 const begin=js.indexOf('function bankCreditLine('),end=js.indexOf('function renderGroups(data){',begin);
