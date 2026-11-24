@@ -886,7 +886,7 @@ function renderCustomerDetail(row,contact){
   else all.dataset.workSummaryBack='overview';
   const title=node('div','work-summary-header-title');
   title.append(node('strong','work-summary-heading',row?.display_name||row?.username||contact?.name||'Khách hàng'));
-  title.append(node('span','work-summary-subheading',`${remainingRecords.length} mã · ${formatNumber(remainingProductCount)} sản phẩm`));
+  title.append(node('span','work-summary-subheading',`${remainingRecords.length} mã chờ · ${allRecords.length-remainingRecords.length} mã đã tiếp nhận · ${formatNumber(remainingProductCount)} SL chờ`));
   header.append(all,title);
   host.append(header);
 
