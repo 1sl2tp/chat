@@ -222,13 +222,13 @@ async function openProductLinkEditor(bubble,record,line,refresh){
   let selected=null;
   function compare(){
    const old=Number(selected?.input_price_vnd),price=Number(line.net_unit_vnd),f=Number(factor.value);
-   if(!selected||!verified.checked||!Number.isFinite(f)||f<=0||!Number.isFinite(price)||price<=0||!Number.isFinite(old)||old<=0){
+   if(!selected||!verified.checked||!Number.isFinite(f)||f<=0||!Number.isFinite(price)||price<=0||!Number.isSafeInteger(old)||old<=0||!String(selected.input_price_basis||"").trim()||!String(line.printed_unit||"").trim()){
     comparison.textContent="Chưa đủ dữ liệu xác minh giá.";return;
    }
    const next=price/f;
    if(!Number.isSafeInteger(next)||next<=0){comparison.textContent="Giá quy đổi không hợp lệ.";return;}
    const delta=next-old,pct=delta/old*100;
-   comparison.textContent="Giá quy đổi: "+money(next)+" đ · Chênh lệch: "+(delta>0?"+":"")+money(delta)+" đ ("+pct.toFixed(2)+"%). "+(Math.abs(pct)>20?"Cần kiểm tra giá bất thường.":"Chờ duyệt giá.")+" Chỉ xem trước.";
+   comparison.textContent="Giá quy đổi: "+money(next)+" đ · Chênh lệch: "+(delta>0?"+":"")+money(delta)+" đ ("+pct.toFixed(2)+"%). "+(Math.abs(pct)>20?"Cần kiểm tra giá bất thường.":"Đủ dữ liệu đối chiếu.")+" Chỉ xem trước; chưa duyệt giá.";
   }
   factor.addEventListener("input",()=>{verified.checked=false;compare();});
   verified.addEventListener("change",compare);
