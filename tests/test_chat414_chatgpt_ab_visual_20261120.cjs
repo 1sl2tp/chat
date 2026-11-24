@@ -40,8 +40,8 @@ assert(css.includes('#messageWindow .message-day-order-wrap .day-order-summary-c
  'KH day summaries must remain a separate surface');
 assert(css.includes('/* CHAT-444 · iPhone side-by-side reference: ONE parent capsule'),
  'one CRM composer capsule must match the ChatGPT reference');
-assert(css.includes('border-radius:999px!important;'),
- 'entire plus/editor/mic/send parent owns the single pill');
+assert(css.includes('border-radius:var(--ui-chat-composer-radius,28px)!important;'),
+ 'single composer keeps a compact first-line pill and safe multiline corners');
 assert(css.includes('background:var(--cgpt-composer-surface-primary)!important;'),
  'single composer surface must not use disconnected sub-capsules');
 assert(!css.includes('grid-column:2 / 4;')&&!css.includes('grid-template-columns:'),

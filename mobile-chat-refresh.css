@@ -231,7 +231,7 @@
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
     height:var(--editor-height,40px);
     min-height:40px;
-    max-height:150px; /* CHAT-439: 40px first line + 5×22px, whole six lines */
+    max-height:150px; /* CHAT-439/445: 40px + 5×22px; loaded-last typography must agree */
     margin:0;
     padding:9px 2px!important;
     font-size:var(--ui-input-mobile-font-size,16px);

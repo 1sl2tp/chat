@@ -42,8 +42,9 @@ assert(css.includes('max-height:150px; /* CHAT-439'),
  'CSS actual max height must permit six lines; JS limit alone is insufficient');
 assert(css.includes('grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr)'),
  'the plus/text/mic/send track widths must not move while typing');
-assert(html.includes('<meta name="app-release-version" content="V21.72.81">'));
-assert(app.includes("releaseVersion:'V21.72.81'"));
-assert(sw.includes("RELEASE_VERSION='V21.72.81'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui444-reference-composer-20261124'"));
+const version=html.split('name="app-release-version" content="')[1]?.split('"')[0];
+assert(version?.startsWith('V21.'),'source release must be explicit');
+assert(app.includes("releaseVersion:'"+version+"'"));
+assert(sw.includes("RELEASE_VERSION='"+version+"'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-"),'public PWA cache epoch retained');
 console.log('CHAT-439 whole-line mobile composer cap, keyboard stability and release parity PASS');

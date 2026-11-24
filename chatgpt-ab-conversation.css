@@ -132,7 +132,10 @@
   #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]){
     background:var(--cgpt-composer-surface-primary)!important;
     border-color:color-mix(in srgb,var(--theme-content-secondary) 20%,transparent)!important;
-    border-radius:999px!important;
+    /* CHAT-445: a tall multiline draft stays a rounded rectangle. The
+       prior 999px pill curved into the top text rows on iPhone. The shared
+       token remains pill-shaped at one line without changing any tracks. */
+    border-radius:var(--ui-chat-composer-radius,28px)!important;
     box-shadow:none!important;
     padding:2px var(--ui-composer-inner-inset,4px)!important;
   }

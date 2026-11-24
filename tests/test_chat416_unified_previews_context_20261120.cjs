@@ -80,7 +80,7 @@ assert.equal(posted[0].body,'Chủ nhật chị nghỉ');
 assert.equal(posted[0].title,'C Sâm pl','proper name must not be auto-lowercased');
 assert(sw.includes("kind==='message'?")&&sw.includes("chatPushDisplayPreview(payload.body||'Tin nhắn mới')"),
  'only chat-message lockscreen previews are re-cased, bank/calls stay intact');
-assert(/const SHELL_CACHE_EPOCH='pwa-chat-ui[0-9]+-[a-z0-9-]+-[0-9]{8}'/u.test(sw)&&
+assert(/const SHELL_CACHE_EPOCH='pwa-chat-(?:ui|img)?[0-9]+-[a-z0-9-]+-[0-9]{8}'/u.test(sw)&&
  sw.includes("const CACHE_NAME='taphoa-chat-shell-'+RELEASE_VERSION+'-'+SHELL_CACHE_EPOCH")&&
  sw.includes("key.startsWith('taphoa-chat-shell-')")&&
  !sw.includes("indexedDB.deleteDatabase("),

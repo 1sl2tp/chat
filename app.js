@@ -275,9 +275,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.81 runtime: '+message;
+    runtimeError.textContent='V21.72.82 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.81]',error);
+    console.error('[ChatScreenModule V21.72.82]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -443,7 +443,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.81',
+  releaseVersion:'V21.72.82',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -6526,7 +6526,11 @@ function autoGrow({source='layout'}={}){
   const visibleHeight=composerStableViewportHeightPx;
   const typing=source==='typing';
   if(!typing||!composerTypingMetrics){
-    const lineHeight=Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
+    const editorStyle=getComputedStyle(editor);
+    const lineHeight=Math.max(22,parseFloat(editorStyle.lineHeight)||24);
+    // CHAT-445: CSS may be overridden by a later UI layer. Never let the
+    // native textarea be taller than its painted CSS cap (or clip half a row).
+    const cssMaxHeight=Math.max(40,parseFloat(editorStyle.maxHeight)||(mobile?150:64));
     const headerHeight=typeof regionTop!=='undefined'
       ?Math.ceil(regionTop?.getBoundingClientRect?.().height||0):56;
     const composerHeight=typeof bottomContainer!=='undefined'
@@ -6538,12 +6542,21 @@ function autoGrow({source='layout'}={}){
     // remains constant as text grows across the first line break.
     const composerOverhead=composerHeight>0
       ?Math.max(0,composerHeight-Math.max(44,editorHeight)):12;
-    composerTypingMetrics={lineHeight,headerHeight,composerOverhead};
+    composerTypingMetrics={lineHeight,headerHeight,composerOverhead,cssMaxHeight};
   }
-  const {lineHeight,headerHeight,composerOverhead}=composerTypingMetrics;
+  const {lineHeight,headerHeight,composerOverhead,cssMaxHeight}=composerTypingMetrics;
+  // Quantize to complete painted rows even when a future theme overrides
+  // the CSS max-height. A keyboard-open draft gets at most four rows so the
+  // conversation remains readable; longer drafts scroll inside the textarea.
+  const cssWholeLineCap=40+Math.max(0,Math.floor((cssMaxHeight-40)/lineHeight))*lineHeight;
+  const keyboardOpen=typeof KeyboardInsetAdapter!=='undefined'&&KeyboardInsetAdapter.open;
   const maxHeight=mobile
-    ?composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead,lineHeight)
-    :64;
+    ?Math.max(40,Math.min(
+        composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead,lineHeight),
+        cssWholeLineCap,
+        keyboardOpen?40+3*lineHeight:Infinity
+      ))
+    :Math.min(64,cssMaxHeight);
   let next=Math.max(40,Math.min(maxHeight,natural));
   // Predictive text / Vietnamese punctuation may temporarily change wraps.
   // Never shrink during forward typing; deletion and viewport changes can.
@@ -9353,7 +9366,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.81',
+  version:'V21.72.82',
   snapshot(){
     return{
       viewportMode:viewport.mode,

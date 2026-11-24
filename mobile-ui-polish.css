@@ -1807,7 +1807,9 @@
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #editor{
     font-size:16px; /* prevents iOS focus zoom; never reduce input font */
-    line-height:24px;
+    /* CHAT-445: match the first 40px line (9px+22px+9px) and JS row cap.
+       A later 24px override clipped the first/last line inside the 150px textarea. */
+    line-height:22px;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #composerShell :is(#composer-plus-btn,#composer-mic-btn){
     border-radius:999px;

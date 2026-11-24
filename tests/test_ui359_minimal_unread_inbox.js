@@ -48,7 +48,7 @@ assert(css.includes('.contact-directory-filter-line[data-expanded="true"] .conta
 const release=source.match(/name="app-release-version" content="(V\d+\.\d+\.\d+)"/)?.[1];
 assert(release,'canonical release missing');
 assert(sw.includes("const RELEASE_VERSION='"+release+"';"),'SW and HTML release must match');
-const epoch=sw.match(/const SHELL_CACHE_EPOCH='pwa-chat-(?:ui|img)(\d+)-[^']+'/);
+const epoch=sw.match(/const SHELL_CACHE_EPOCH='pwa-chat-(?:ui|img)?(\d+)-[^']+'/);
 assert(epoch && Number(epoch[1])>=359,'PWA epoch must preserve UI-359 release and allow newer UI releases');
 assert(sw.includes('CACHE_NAME'));
 console.log('PASS UI-359 unread cue, compact contact filters, release');

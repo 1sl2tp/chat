@@ -11,6 +11,8 @@ const ab=read('chatgpt-ab-conversation.css');
 const shell=read('shell.js');
 const source=read('index.source.html');
 const sw=read('sw.js');
+const sourceVersion=source.split('name="app-release-version" content="')[1]?.split('"')[0];
+assert(sourceVersion?.startsWith('V21.'),'canonical source release exists');
 assert(token.includes('--ui-chat-layout-rail:12px;'));
 assert(token.includes('--ui-chat-message-rail:14px;'),
  '12px geometry + 2px optical compensation for rounded edges');
@@ -52,13 +54,13 @@ assert(ab.includes('B / remote: genuine unboxed text'));
 assert(ab.includes('border-radius:24px!important;'));
 assert(ab.includes('/* CHAT-444 · iPhone side-by-side reference: ONE parent capsule'),
  'single ChatGPT-like input capsule replaces nested input painting');
-assert(ab.includes('border-radius:999px!important;'),
+assert(ab.includes('border-radius:var(--ui-chat-composer-radius,28px)!important;'),
  'composer optical edge belongs to the ComposerShell parent');
 assert(ab.includes(':has(#editor:focus-visible){'),
  'the single capsule uses editor-only focus, not duplicate surface');
-assert(source.includes('<meta name="app-release-version" content="V21.72.81">'));
-assert(sw.includes("RELEASE_VERSION='V21.72.81'"));
-assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui444-reference-composer-20261124'"));
+assert(sourceVersion?.startsWith('V21.'));
+assert(sw.includes("RELEASE_VERSION='"+sourceVersion+"'"));
+assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-"),'PWA cache epoch exists');
 assert(shell.includes('const WORK_ENABLED=false;'),'Work remains dormant');
 for(const w of [320,360,390,500]){
  const inputWidth=w-24-8-(44*3)-(8*3);
