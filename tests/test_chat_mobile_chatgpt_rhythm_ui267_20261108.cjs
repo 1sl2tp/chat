@@ -51,7 +51,10 @@ assert(css.includes('padding-bottom:25px!important;'),'in-bubble time and virtua
 assert(app.includes("time.className='message-sent-time'"),'no duplicate time nodes');
 assert(shell.includes("const showIdleCall=route==='chat'&&hasContact;"),'live call owner untouched');
 const mobileComposer=rule(composer,chat+' #composerShell');
-assert(mobileComposer.includes('grid-template-rows:autoautominmax(var(--ui-control-touch,44px),auto);'));
+assert(mobileComposer.includes('grid-template-rows:autoautominmax(40px,auto)minmax(var(--ui-control-touch,44px),auto);'));
+const editorWrap=rule(composer,chat+' #editorWrap');
+assert(editorWrap.includes('grid-column:1/-1;')&&editorWrap.includes('grid-row:3;'),
+ 'ChatGPT-like text uses the full composer width, not the middle action column');
 const editor=rule(composer,chat+' #editor');
 assert(editor.includes('min-height:40px;')&&editor.includes('padding:9px2px!important;'));
 for(const id of ['composer-plus-btn','composer-mic-btn','send']){
