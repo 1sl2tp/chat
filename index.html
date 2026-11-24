@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.81">
-<meta name="app-build-id" content="e31ffbfb0aac82aa0f1e444df91bf2a12c0c2db24d5f4d255dc5d8d324989079">
+<meta name="app-release-version" content="V21.72.82">
+<meta name="app-build-id" content="d39f3d1683257d6bc1e72d573a1ef84ec6d68004bcdcff05bcbca777f0fa9442">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7199,7 +7199,7 @@ body.ncc-ai-room-open{overflow:hidden}
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
     height:var(--editor-height,40px);
     min-height:40px;
-    max-height:150px; /* CHAT-439: 40px first line + 5×22px, whole six lines */
+    max-height:150px; /* CHAT-439/445: 40px + 5×22px; loaded-last typography must agree */
     margin:0;
     padding:9px 2px!important;
     font-size:var(--ui-input-mobile-font-size,16px);
@@ -13580,7 +13580,9 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #editor{
     font-size:16px; /* prevents iOS focus zoom; never reduce input font */
-    line-height:24px;
+    /* CHAT-445: match the first 40px line (9px+22px+9px) and JS row cap.
+       A later 24px override clipped the first/last line inside the 150px textarea. */
+    line-height:22px;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #composerShell :is(#composer-plus-btn,#composer-mic-btn){
     border-radius:999px;
@@ -14559,7 +14561,10 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   #composerShell:not([data-audio-state="REQUESTING_PERMISSION"]):not([data-audio-state="RECORDING"]):not([data-audio-state="STOPPING"]):not([data-audio-state="PREVIEW"]):not([data-audio-state="SENDING"]){
     background:var(--cgpt-composer-surface-primary)!important;
     border-color:color-mix(in srgb,var(--theme-content-secondary) 20%,transparent)!important;
-    border-radius:999px!important;
+    /* CHAT-445: a tall multiline draft stays a rounded rectangle. The
+       prior 999px pill curved into the top text rows on iPhone. The shared
+       token remains pill-shaped at one line without changing any tracks. */
+    border-radius:var(--ui-chat-composer-radius,28px)!important;
     box-shadow:none!important;
     padding:2px var(--ui-composer-inner-inset,4px)!important;
   }
@@ -17942,9 +17947,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.81 runtime: '+message;
+    runtimeError.textContent='V21.72.82 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.81]',error);
+    console.error('[ChatScreenModule V21.72.82]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -18110,7 +18115,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.81',
+  releaseVersion:'V21.72.82',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -24193,7 +24198,11 @@ function autoGrow({source='layout'}={}){
   const visibleHeight=composerStableViewportHeightPx;
   const typing=source==='typing';
   if(!typing||!composerTypingMetrics){
-    const lineHeight=Math.max(22,parseFloat(getComputedStyle(editor).lineHeight)||24);
+    const editorStyle=getComputedStyle(editor);
+    const lineHeight=Math.max(22,parseFloat(editorStyle.lineHeight)||24);
+    // CHAT-445: CSS may be overridden by a later UI layer. Never let the
+    // native textarea be taller than its painted CSS cap (or clip half a row).
+    const cssMaxHeight=Math.max(40,parseFloat(editorStyle.maxHeight)||(mobile?150:64));
     const headerHeight=typeof regionTop!=='undefined'
       ?Math.ceil(regionTop?.getBoundingClientRect?.().height||0):56;
     const composerHeight=typeof bottomContainer!=='undefined'
@@ -24205,12 +24214,21 @@ function autoGrow({source='layout'}={}){
     // remains constant as text grows across the first line break.
     const composerOverhead=composerHeight>0
       ?Math.max(0,composerHeight-Math.max(44,editorHeight)):12;
-    composerTypingMetrics={lineHeight,headerHeight,composerOverhead};
+    composerTypingMetrics={lineHeight,headerHeight,composerOverhead,cssMaxHeight};
   }
-  const {lineHeight,headerHeight,composerOverhead}=composerTypingMetrics;
+  const {lineHeight,headerHeight,composerOverhead,cssMaxHeight}=composerTypingMetrics;
+  // Quantize to complete painted rows even when a future theme overrides
+  // the CSS max-height. A keyboard-open draft gets at most four rows so the
+  // conversation remains readable; longer drafts scroll inside the textarea.
+  const cssWholeLineCap=40+Math.max(0,Math.floor((cssMaxHeight-40)/lineHeight))*lineHeight;
+  const keyboardOpen=typeof KeyboardInsetAdapter!=='undefined'&&KeyboardInsetAdapter.open;
   const maxHeight=mobile
-    ?composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead,lineHeight)
-    :64;
+    ?Math.max(40,Math.min(
+        composerTextHeightLimit(visibleHeight,headerHeight,composerOverhead,lineHeight),
+        cssWholeLineCap,
+        keyboardOpen?40+3*lineHeight:Infinity
+      ))
+    :Math.min(64,cssMaxHeight);
   let next=Math.max(40,Math.min(maxHeight,natural));
   // Predictive text / Vietnamese punctuation may temporarily change wraps.
   // Never shrink during forward typing; deletion and viewport changes can.
@@ -27020,7 +27038,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.81',
+  version:'V21.72.82',
   snapshot(){
     return{
       viewportMode:viewport.mode,
