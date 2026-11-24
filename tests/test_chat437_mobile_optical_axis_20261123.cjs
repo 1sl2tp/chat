@@ -50,9 +50,12 @@ assert(dir.includes('grid-area:results;')&&dir.includes('overflow-y:auto;'));
 assert(!dir.includes('position:fixed'),'no competing scroll/keyboard owner');
 assert(ab.includes('B / remote: genuine unboxed text'));
 assert(ab.includes('border-radius:24px!important;'));
-assert(ab.includes('grid-column:2 / 4;'),'painted input capsule must cover editor and mic only');
-assert(ab.includes('border-radius:26px;'),'composer optical edge belongs to its shared input capsule');
-assert(ab.includes('pointer-events:none;'),'painted capsule never steals textarea focus');
+assert(ab.includes('/* CHAT-444 · iPhone side-by-side reference: ONE parent capsule'),
+ 'single ChatGPT-like input capsule replaces nested input painting');
+assert(ab.includes('border-radius:999px!important;'),
+ 'composer optical edge belongs to the ComposerShell parent');
+assert(ab.includes(':has(#editor:focus-visible){'),
+ 'the single capsule uses editor-only focus, not duplicate surface');
 assert(source.includes('<meta name="app-release-version" content="V21.72.80">'));
 assert(sw.includes("RELEASE_VERSION='V21.72.80'"));
 assert(sw.includes("SHELL_CACHE_EPOCH='pwa-chat-ui441-ios-multi-photo-selection-20261123'"));
