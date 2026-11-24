@@ -10,12 +10,14 @@ const shared=read('ui-foundation.css');
 const sw=read('sw.js');
 const app=read('app.js');
 const sprite=read('ui-library/icons-2027.svg');
-const version='V21.72.81';
-assert.ok(html.includes('name="app-release-version" content="'+version+'"'));
+const version=html.match(/<meta name="app-release-version" content="([^"]+)"/)?.[1];
+assert.ok(/^V\\d+\\.\\d+\\.\\d+$/.test(version),'canonical release meta must exist');
 assert.ok(sw.includes("const RELEASE_VERSION='"+version+"'"));
 assert.ok(app.includes("releaseVersion:'"+version+"'"));
-assert.ok(sw.includes("pwa-chat-ui444-reference-composer-20261124"),
- 'public PWA shell must rotate to deliver changed CSS');
+const epoch=sw.match(/const SHELL_CACHE_EPOCH='([^']+)';/)?.[1];
+assert.ok(/^pwa-chat-[a-z0-9-]+$/.test(epoch),'public PWA shell needs a release cache epoch');
+assert.notEqual(epoch,'pwa-chat-ui444-reference-composer-20261124',
+ 'changed composer CSS must rotate the previous PWA shell');
 assert.ok(sw.includes("'./ui-library/icons-2027.svg'"),
  'shared canonical icon sprite must be available to installed PWA offline');
 assert.ok(sprite.includes('id="ui-icon-clipboard"'));
