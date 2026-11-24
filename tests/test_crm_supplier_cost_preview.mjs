@@ -10,3 +10,13 @@ assert.equal(preview({...base,unitFactor:0}).status,'manual');
 assert.equal(preview({...base,newUnitPriceVnd:120001}).reason,'invalid_normalized_cost');
 assert.equal(preview({...base,newUnitPriceVnd:80000}).deltaVnd,-2000);
 console.log('CRM supplier cost preview OK');
+
+import {reviewCostApproval as review} from '../supplier-invoice-core.mjs';
+const approval={...base,productCode:'SP001',linkedProductCode:'SP001',invoiceVerified:true,currentCostVnd:10000};
+assert.equal(review(approval).status,'ready_for_approval');
+assert.equal(review({...approval,linkedProductCode:'SP002'}).reason,'product_link_required');
+assert.equal(review({...approval,invoiceVerified:false}).reason,'invoice_review_required');
+assert.equal(review({...approval,currentCostVnd:11000}).reason,'stale_catalog_cost');
+assert.equal(review({...approval,newUnitPriceVnd:130000}).status,'blocked');
+assert.equal(review({...approval,newUnitPriceVnd:130000,acceptPriceJump:true}).status,'ready_for_approval');
+assert.equal(review({...approval,unitVerified:false,acceptPriceJump:true}).status,'blocked');
