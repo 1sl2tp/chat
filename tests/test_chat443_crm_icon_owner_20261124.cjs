@@ -22,8 +22,8 @@ assert.ok(symbols.has('ui-icon-clipboard')&&symbols.has('ui-icon-image'),
 assert.match(html,/data-crm-tab-owner="conversation-navigation"/);
 assert.match(html,/data-crm-secondary-tab-icon/);
 assert.match(html,/data-crm-secondary-tab-label/);
-assert.match(directory,/querySelector\('\[data-crm-secondary-tab-label\]'\)/);
-assert.match(directory,/querySelector\('use\[data-crm-secondary-tab-icon\]'\)/);
+assert.match(directory,/querySelector\?\.\('\[data-crm-secondary-tab-label\]'\)/);
+assert.match(directory,/querySelector\?\.\('use\[data-crm-secondary-tab-icon\]'\)/);
 assert.match(directory,/visible\?'clipboard':'image'/);
 assert.doesNotMatch(directory,/if\(right\.textContent!==wanted\)right\.textContent=wanted;\s*right\.setAttribute/,
   'do not erase a canonical SVG child when changing the secondary tab');
