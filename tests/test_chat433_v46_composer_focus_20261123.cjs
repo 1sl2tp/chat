@@ -10,8 +10,8 @@ const begin=css.indexOf('/* CHAT-444 · iPhone side-by-side reference: ONE paren
 const finish=css.indexOf('  #composerShell :is(#editorWrap,#composer-mic-btn)',begin);
 assert(begin>=0&&finish>begin,'focus remains in the single composer visual owner');
 const block=css.slice(begin,finish);
-assert(block.includes('border-radius:999px!important;'),
- 'one outer ComposerShell capsule holds plus, editor, mic and send');
+assert(block.includes('border-radius:var(--ui-chat-composer-radius,28px)!important;'),
+ 'one ComposerShell parent has a safe long-draft corner radius for plus, editor, mic and send');
 assert(block.includes(':has(#editor:focus-visible){'),
  'textarea, not buttons, triggers the parent capsule focus ring');
 assert(!block.includes(':focus-within::before'),
