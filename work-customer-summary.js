@@ -915,7 +915,31 @@ function openOverviewCustomer(customerId){
   return true;
 }
 
+function renderSupplierContext(contact){
+  const host=root();
+  if(!host)return;
+  host.replaceChildren();
+  const header=node('div','work-summary-header work-summary-detail-header');
+  const back=node('button','work-summary-all',workDetailBackMode()==='conversation'?'Quay lại':'Tất cả');
+  back.type='button';
+  back.dataset.workSummaryAll='true';
+  back.dataset.workSummaryBack=workDetailBackMode();
+  const title=node('div','work-summary-header-title');
+  title.append(node('strong','work-summary-heading',contact?.name||'Nhà cung cấp'));
+  title.append(node('span','work-summary-subheading','NCC · Nhập hàng'));
+  header.append(back,title);
+  host.append(header);
+  const body=node('div','work-summary-body work-summary-detail');
+  body.append(node('div','work-summary-state work-summary-state-muted','Báo giá và đồng bộ giá: chưa kết nối dữ liệu.'));
+  host.append(body);
+}
+
 function renderCurrent(){
+  const current=activeContact();
+  if(!forceOverview&&!selectedWorkCustomerId&&window.V21ContactDirectoryAdmin?.getContactGroup?.(current?.id)==='ncc'){
+    renderSupplierContext(current);
+    return;
+  }
   // WORK-149: after Work-only data has been cleared, never retain a stale
   // selected customer detail from a previous render/session.
   // Keep Chat's selected contact and directory scroll entirely untouched.
