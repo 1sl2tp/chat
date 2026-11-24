@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.82">
-<meta name="app-build-id" content="d39f3d1683257d6bc1e72d573a1ef84ec6d68004bcdcff05bcbca777f0fa9442">
+<meta name="app-release-version" content="V21.72.83">
+<meta name="app-build-id" content="702a23fce1059df495dc88377a5b128897bac82de8d8c49ef3533f974e67f1b5">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7137,9 +7137,10 @@ body.ncc-ai-room-open{overflow:hidden}
     box-sizing:border-box;
   }
 
-  /* ChatGPT-like adaptive dock: reply/attachments occupy rows above one
-     compact writing row. The existing keyboard owner still moves the whole
-     composer when VisualViewport opens. */
+  /* ChatGPT-like adaptive dock: one canonical responsive composer frame. */
+  /* CHAT-446: permanent two-row mobile Composer. A full-width text row
+     stands ABOVE the 44px action rail for 1, 2 and many lines; no mode switch.
+     VisualViewport/keyboard placement remains solely in app.js. */
   #appShell[data-auth-state="authenticated"][data-route="chat"] .composer-source-frame{
     /* chat-content-axis has its own !important padding (desktop); cancel it
        here so the mobile composer does NOT pay the outer gutter twice. */
@@ -7153,9 +7154,8 @@ body.ncc-ai-room-open{overflow:hidden}
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell{
     grid-template-columns:var(--ui-control-touch,44px) minmax(0,1fr) var(--ui-control-touch,44px) var(--ui-control-touch,44px);
-    /* CHAT-398: one stable action row at every line count. Text grows
-       upward from the same bottom edge and NEVER changes its width. */
-    grid-template-rows:auto auto minmax(var(--ui-control-touch,44px),auto);
+    /* Reply/attachments, full-width editor, stable footer action rail. */
+    grid-template-rows:auto auto minmax(40px,auto) minmax(var(--ui-control-touch,44px),auto);
     align-items:end;
     gap:0 var(--ui-composer-action-gap,8px);
     overflow:visible;
@@ -7187,13 +7187,12 @@ body.ncc-ai-room-open{overflow:hidden}
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editorWrap{
-    grid-column:2;
+    grid-column:1 / -1;
     grid-row:3;
-    align-self:end;
+    align-self:stretch;
     min-width:0;
-    /* The text starts 12px inside the rounded input capsule, independent
-       of the 44px microphone target at its opposite end. */
-    padding:0 2px 0 10px!important;
+    /* Composer owns the left ruler; text never starts after the + column. */
+    padding:0 10px!important;
   }
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #editor{
@@ -7252,18 +7251,18 @@ body.ncc-ai-room-open{overflow:hidden}
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-plus-btn{
     grid-column:1;
-    grid-row:3;
+    grid-row:4;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerHint{
     display:none;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composer-mic-btn{
     grid-column:3;
-    grid-row:3;
+    grid-row:4;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send{
     grid-column:4;
-    grid-row:3;
+    grid-row:4;
     /* SPEC-CHAT-COMPOSER-MIC-SEND-20261102: 44px hit target with
        a 38px painted disc (3px surrounding composer-colored ring).
        Keep exactly the same disc in active/idle/keyboard modes. */
@@ -7293,9 +7292,8 @@ body.ncc-ai-room-open{overflow:hidden}
   #appShell[data-auth-state="authenticated"][data-route="chat"] #send svg :is(path,line,rect,circle,polyline){
     stroke-width:2px!important;
   }
-  /* CHAT-398: no mode-dependent grid reflow on soft wrap or newline.
-     Plus, microphone and send remain on the last text row,
-     while the native textarea grows only into the space above. */
+  /* CHAT-446: Plus, microphone and Send always remain on the bottom rail.
+     Full-width native textarea grows above them, and scrolls at its cap. */
 
   #appShell[data-auth-state="authenticated"][data-route="chat"] #composerShell:not([data-can-send="true"]) #send{
     background:color-mix(in srgb,var(--theme-content-tertiary) 47%,var(--theme-surface-secondary));
@@ -17947,9 +17945,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.82 runtime: '+message;
+    runtimeError.textContent='V21.72.83 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.82]',error);
+    console.error('[ChatScreenModule V21.72.83]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -18115,7 +18113,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.82',
+  releaseVersion:'V21.72.83',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -24139,11 +24137,9 @@ function ensureComposerMeasureReady(){
   syncMeasureStyle({force:true,widthPx:editor.getBoundingClientRect().width});
 }
 
-// CHAT-398: one stable mobile action row. The textarea keeps the SAME
-// width for one, two and many lines; only its height grows upward. Moving
-// actions to a second grid row changed text wrapping mid-keystroke and made
-// Safari alternately resize/reposition the whole Composer above the keyboard.
-// Desktop retains its existing two-line cap. Caret and IME remain native.
+// CHAT-446: one permanent mobile full-width editor row ABOVE the action rail.
+// This is NOT a 1-to-2-row mode switch; controls/width never move while typing.
+// Desktop, native textarea/caret, IME, and VisualViewport owner stay unchanged.
 const composerMobileBreakpoint=window.matchMedia?.('(max-width:63.999rem)')||null;
 let lastEditorHeightPx=40;
 let lastEditorInternalScroll=false;
@@ -24208,12 +24204,10 @@ function autoGrow({source='layout'}={}){
     const composerHeight=typeof bottomContainer!=='undefined'
       ?Math.ceil(bottomContainer?.getBoundingClientRect?.().height||0):0;
     const editorHeight=Math.ceil(editor.getBoundingClientRect().height||lastEditorHeightPx);
-    // This is constant during typing: action controls never swap tracks.
-    // The first 40px text row sits inside a 44px action track. Subtract
-    // that track's painted height, not 40px, so the cached chrome height
-    // remains constant as text grows across the first line break.
+    // Mobile text is a separate full-width row above the fixed 44px actions;
+    // exclude its full height from overhead. Desktop still shares one track.
     const composerOverhead=composerHeight>0
-      ?Math.max(0,composerHeight-Math.max(44,editorHeight)):12;
+      ?Math.max(0,composerHeight-(mobile?editorHeight:Math.max(44,editorHeight))):12;
     composerTypingMetrics={lineHeight,headerHeight,composerOverhead,cssMaxHeight};
   }
   const {lineHeight,headerHeight,composerOverhead,cssMaxHeight}=composerTypingMetrics;
@@ -24248,10 +24242,11 @@ function autoGrow({source='layout'}={}){
     // A fixed VisualViewport dock must grow UP, never extend downward into
     // the keyboard for one animation frame before the ResizeObserver runs.
     if(typeof KeyboardInsetAdapter!=='undefined'){
-      // The grid already reserves 44px for the action buttons. A 40→64px
-      // editor change physically grows the dock by only 20px (not 24px).
-      // Compensating for the raw delta would cause a 4px iOS bounce.
-      const paintedDelta=Math.max(44,next)-Math.max(44,previousHeight);
+      // Two-row mobile dock grows by the FULL editor delta. Desktop keeps
+      // shared 44px action-track compensation. Same paint, no iOS bounce.
+      const paintedDelta=mobile
+        ?next-previousHeight
+        :Math.max(44,next)-Math.max(44,previousHeight);
       KeyboardInsetAdapter.adjustForEditorHeightChange(paintedDelta);
     }
   }
@@ -27038,7 +27033,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.82',
+  version:'V21.72.83',
   snapshot(){
     return{
       viewportMode:viewport.mode,
