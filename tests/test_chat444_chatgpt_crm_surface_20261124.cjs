@@ -25,7 +25,8 @@ for(const name of ['composerShell','composerForm','editor','composer-plus-btn','
  assert.equal((html.match(new RegExp('id="'+name+'"','g'))||[]).length,1,name+' must keep one original owner');
 }
 assert.ok(visual.includes('CHAT-444 · iPhone side-by-side reference'));
-assert.ok(visual.includes('border-radius:999px!important;'));
+assert.ok(visual.includes('border-radius:var(--ui-chat-composer-radius,28px)!important;'),
+ 'multiline composer retains one token-owned rounded rectangular parent');
 assert.ok(visual.includes('background:var(--cgpt-composer-surface-primary)!important;'));
 assert.ok(visual.includes('background:transparent!important;'), 'inner buttons cannot repaint separate disks');
 assert.ok(!visual.includes('grid-column:2 / 4;'), 'no second fake capsule behind editor/microphone');
