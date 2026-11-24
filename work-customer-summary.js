@@ -787,7 +787,7 @@ function renderOverview(rows=[]){
   if(!host)return;
   host.replaceChildren();
 
-  const summaries=rows.map(rowSummary).filter(summary=>summary.codeCount>0);
+  const summaries=rows.filter(row=>window.V21ContactDirectoryAdmin?.getContactGroup?.(row?.customer_id)==='customer').map(rowSummary).filter(summary=>summary.codeCount>0);
   const header=node('div','work-summary-header');
   const title=node('div','work-summary-header-title');
   const heading=node('strong','work-summary-heading','Tổng hợp');
@@ -917,7 +917,7 @@ function renderCustomerDetail(row,contact){
 function openOverviewCustomer(customerId){
   const id=String(customerId||'');
   const row=rowsCache.find(item=>String(item?.customer_id||'')===id)||null;
-  if(!id||!row)return false;
+  if(!id||!row||window.V21ContactDirectoryAdmin?.getContactGroup?.(id)!=='customer')return false;
   selectedWorkCustomerId=id;
   forceOverview=false;
   renderCustomerDetail(row,{id,name:row.display_name||row.username||'Khách hàng'});
