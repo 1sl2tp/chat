@@ -2,8 +2,9 @@
 const assert=require('node:assert/strict');
 const {createReadHost}=require('../chat-0v-read-host.js');
 (async()=>{
- let s={state:'AUTHENTICATED',account:{id:'a'},appSessionId:'private-session'},calls=[],release;
+ let s={state:'AUTHENTICATED',account:{id:'a',role:'admin'},appSessionId:'private-session'},calls=[],release;
  const db={rpc:async(name,args)=>{calls.push({name,args});if(name==='v21_contacts_sidebar')return {data:[{id:'c',display_name:'Mẫu',conversation_id:'room',avatar_path:'private',username:'private'},{id:'empty',display_name:'Trống',conversation_id:null}]};return {data:{account_id:'a',messages:[{id:'m',conversation_id:'room',sender_account_id:'a',body:'Mẫu',created_at:'2026-11-25T18:00:00Z',client_id:'private'}]}}}};
+ const nonAdmin=createReadHost({session:()=>({...s,account:{id:'a',role:'user'}}),client:()=>db});assert.throws(()=>nonAdmin.start(),/session_unavailable/);assert.equal(calls.length,0);
  const host=createReadHost({session:()=>s,client:()=>db});
  assert.deepEqual(host.start(),{accountId:'a',epoch:'approved-host-session',approved:true});
  await assert.rejects(host.read('thread','c'),/forbidden/);assert.equal(calls.length,0);
