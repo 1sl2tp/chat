@@ -7,7 +7,7 @@ test('admin reads existing directory and messages in 0v; non-admin cannot',async
   if(url.origin!=='http://127.0.0.1:8765')return route.abort();
   if(url.pathname!=='/qa-0v-host')return route.continue();
   const role=url.searchParams.get('role')==='user'?'user':'admin';
-  return route.fulfill({contentType:'text/html',body:`<!doctype html><html><body><button data-chat-0v-admin hidden>0v · Đọc dữ liệu CHAT</button><script>
+  return route.fulfill({contentType:'text/html; charset=utf-8',body:`<!doctype html><html><head><meta charset="utf-8"></head><body><button data-chat-0v-admin hidden>0v · Đọc dữ liệu CHAT</button><script>
   window.calls=[];
   let auth={state:'AUTHENTICATED',account:{id:'admin-id',role:${JSON.stringify(role)}},appSessionId:'fixture-private'};
   const db={rpc:async(name,args)=>{window.calls.push(name);if(name==='v21_contacts_sidebar')return {data:[{id:'c1',display_name:'Liên hệ kiểm thử',conversation_id:'room1',preview_text:'Tin đã có',latest_at:'2026-11-25T18:00:00Z'}]};if(name==='v21_sync_snapshot'&&args.p_conversation_id==='room1')return {data:{account_id:'admin-id',messages:[{id:'m1',conversation_id:'room1',sender_account_id:'c1',body:'Nội dung tin nhắn kiểm thử',created_at:'2026-11-25T18:00:00Z'}]}};throw Error('Unexpected RPC')}};
