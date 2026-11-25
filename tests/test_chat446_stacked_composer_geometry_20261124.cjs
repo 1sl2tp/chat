@@ -30,7 +30,11 @@ assert(app.includes('const paintedDelta=mobile'),'different physical mobile/desk
 assert(app.includes('?next-previousHeight'),'mobile full editor delta');
 assert(app.includes('KeyboardInsetAdapter.adjustForEditorHeightChange(paintedDelta)'),
  'existing VisualViewport owner remains sole positioning code');
-assert(sw.includes("RELEASE_VERSION='V21.72.83'"));
+// Geometry regression stays active across releases; verify all runtime owners use the canonical version.
+const version=html.match(/<meta name="app-release-version" content="([^"]+)"/)?.[1];
+assert(/^V\d+\.\d+\.\d+$/.test(version),'canonical release version');
+assert(sw.includes("RELEASE_VERSION='"+version+"'"));
+assert(app.includes("releaseVersion:'"+version+"'"));
 assert(sw.includes('pwa-chat-ui446-full-width-composer-20261124'));
 const begin=app.indexOf('const COMPOSER_MEASURE_STYLE_PROPS=[');
 const end=app.indexOf('const composerMeasureObserver=',begin);
