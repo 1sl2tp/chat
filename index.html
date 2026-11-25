@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.84">
-<meta name="app-build-id" content="2748e711aad4de0ca54c6e3d135f706e6a424cd04c10d9e4e2bef9d50979a8d5">
+<meta name="app-release-version" content="V21.72.85">
+<meta name="app-build-id" content="8e5e29e1319585a5a484488f97babb1343a952d8b612dc4b9f14aeefc7ab5228">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15258,6 +15258,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
           <button type="button" data-mobile-drawer-action="directory"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><circle cx="12" cy="9.7" r="2.4"/><path d="M7.6 17c.7-2.5 2-3.6 4.4-3.6 2.4 0 3.7 1.1 4.4 3.6"/></svg><span>Danh bạ</span></button>
           <button type="button" data-mobile-drawer-action="photos"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><circle cx="9" cy="9.5" r="1.5"/><path d="m4.8 17 5.1-5 3.1 3.1 2.7-2.7 3.2 4.6"/></svg><span>Ảnh đã chia sẻ</span></button>
           <button type="button" data-mobile-drawer-action="profile"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 2.5-6.5 7-6.5s7 2.5 7 6.5"/></svg><span>Tài khoản</span></button>
+          <button type="button" data-chat-0v-admin hidden><span>0v · Đọc dữ liệu CHAT</span></button>
           <button type="button" data-mobile-drawer-action="settings" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M9.7 3.2h4.6l.7 2.3 1.9 1.1 2.3-.6 2.2 3.9-1.7 1.8v2.1l1.7 1.8-2.2 3.9-2.3-.6-1.9 1.1-.7 2.3H9.7L9 20l-1.9-1.1-2.3.6-2.2-3.9 1.7-1.8v-2.1L2.6 9.9 4.8 6l2.3.6L9 5.5Z"/><circle cx="12" cy="12.7" r="3"/></svg><span>Cài đặt</span></button>
         </nav>
         <section class="mobile-chat-drawer-history" aria-label="Đoạn chat gần đây">
@@ -15302,6 +15303,7 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
             </button>
             <div class="shell-sidebar-account-menu" data-account-menu role="menu" aria-label="Tài khoản" hidden>
               <button type="button" role="menuitem" data-account-menu-profile>Thông tin cá nhân</button>
+              <button type="button" role="menuitem" data-chat-0v-admin hidden>0v · Đọc dữ liệu CHAT</button>
               <button type="button" role="menuitem" data-account-menu-settings hidden>Cài đặt</button>
               <button type="button" role="menuitem" data-account-menu-friend-request hidden>Gửi lời mời kết bạn</button>
               <div class="shell-sidebar-account-menu-separator" role="separator"></div>
@@ -17945,9 +17947,9 @@ const AppBootController={
     // Repeated global faults must not repaint the banner or multiply logs.
     if(this.lastErrorMessage===message&&!runtimeError.classList.contains('hidden'))return;
     this.lastErrorMessage=message;
-    runtimeError.textContent='V21.72.84 runtime: '+message;
+    runtimeError.textContent='V21.72.85 runtime: '+message;
     runtimeError.classList.remove('hidden');
-    console.error('[ChatScreenModule V21.72.84]',error);
+    console.error('[ChatScreenModule V21.72.85]',error);
   },
   ready(){
     // A successful render invariant proves recovery only for errors seen
@@ -18113,7 +18115,7 @@ window.V21RuntimeProfiles=RuntimeProfiles;
 window.V21RuntimeProfile=RuntimeProfile;
 window.V21PlatformRuntimeId=runtimeId;
 window.V21BuildMetadata=Object.freeze({
-  releaseVersion:'V21.72.84',
+  releaseVersion:'V21.72.85',
   moduleVersionPolicy:'contract-version-independent'
 });
 // V21RuntimeId is owned by runtime-id.js and must remain the asset/client ID generator.
@@ -27033,7 +27035,7 @@ window.V21ConversationBridge={
 window.V21ChatImageViewer=Object.freeze({open:openImageViewer});
 
 window.ChatScreenModule={
-  version:'V21.72.84',
+  version:'V21.72.85',
   snapshot(){
     return{
       viewportMode:viewport.mode,
@@ -48127,7 +48129,7 @@ function createReadHost({session,client}){
  let owner=null,db=null,allowed=new Map(),closed=false,generation=0;
  function current(){
   const s=session(),c=client();
-  if(closed||s?.state!=='AUTHENTICATED'||!s.account?.id||!s.appSessionId||!c)throw Error('session_unavailable');
+  if(closed||s?.state!=='AUTHENTICATED'||s.account?.role!=='admin'||!s.account?.id||!s.appSessionId||!c)throw Error('session_unavailable');
   if(owner&&(owner.accountId!==s.account.id||owner.appSessionId!==s.appSessionId||db!==c))throw Error('session_changed');
   if(!owner){owner={accountId:s.account.id,appSessionId:s.appSessionId};db=c}
   return owner;
@@ -48157,35 +48159,42 @@ function createReadHost({session,client}){
  return Object.freeze({start,read,close,valid(){try{current();return true}catch{return false}}});
 }
 if(typeof module==='object'&&module.exports){module.exports={createReadHost};return}
-if(new URLSearchParams(location.search).get('ui')!=='0v')return;
-let launched=false;
+let launched=false,active=false;
+const requested=()=>new URLSearchParams(location.search).get('ui')==='0v';
+function admin(){const s=window.V21AuthSessionStore?.snapshot();return s?.state==='AUTHENTICATED'&&s.account?.role==='admin'}
 function open(){
- if(launched||document.querySelector('dialog[open]'))return;
+ if(active||document.querySelector('dialog[open]')||!admin())return;
  const auth=window.V21AuthSessionStore;
- if(auth?.snapshot()?.state!=='AUTHENTICATED')return;
+ if(!admin())return;
  const host=createReadHost({session:()=>auth.snapshot(),client:()=>auth.getClient()});
  let scope;try{scope=host.start()}catch{return}
- launched=true;
+ launched=true;active=true;
  const dialog=document.createElement('dialog');dialog.setAttribute('aria-label','0v · Chỉ đọc');
  dialog.style.cssText='box-sizing:border-box;position:fixed;inset:0;margin:0;padding:0;border:0;width:100%;height:100%;max-width:none;max-height:none;background:white;color:#111;display:grid;grid-template-rows:44px minmax(0,1fr)';
  const bar=document.createElement('div');bar.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #ddd;font:14px system-ui';
- const title=document.createElement('span');title.textContent='0v · Dữ liệu CHAT · Chỉ đọc';
+ const title=document.createElement('span');title.textContent='0v · Admin · Đang kết nối…';
  const exit=document.createElement('button');exit.type='button';exit.textContent='Về CHAT';exit.style.cssText='min-height:44px;padding:0 12px';bar.append(title,exit);
  const frame=document.createElement('iframe');frame.title='0v · Danh bạ và hội thoại';frame.setAttribute('sandbox','allow-scripts');frame.referrerPolicy='no-referrer';frame.style.cssText='width:100%;height:100%;border:0;min-height:0';frame.src='./0v-read.html';
- let port=null,ended=false;
- function cleanup(){if(ended)return;ended=true;host.close();port?.close();frame.remove();dialog.remove();document.removeEventListener('v21-auth-state',authChange);window.removeEventListener('pagehide',cleanup)}
+ let port=null,ended=false,ready=false;
+ const timeout=setTimeout(()=>{if(!ended&&!ready)title.textContent='0v · Chưa kết nối — thử mở lại';},12000);
+ function cleanup(){if(ended)return;ended=true;active=false;clearTimeout(timeout);host.close();port?.close();frame.remove();dialog.remove();document.removeEventListener('v21-auth-state',authChange);window.removeEventListener('pagehide',cleanup)}
  function authChange(){if(!host.valid())cleanup()}
  exit.addEventListener('click',()=>dialog.close());dialog.addEventListener('close',cleanup,{once:true});document.addEventListener('v21-auth-state',authChange);window.addEventListener('pagehide',cleanup,{once:true});
  frame.addEventListener('load',()=>{
   if(ended||!host.valid()||port){cleanup();return}
   const channel=new MessageChannel();port=channel.port1;
-  port.onmessage=async e=>{const m=e.data;if(ended||!m||!Number.isSafeInteger(m.seq)||!['directory','thread'].includes(m.kind))return;try{const rows=await host.read(m.kind,m.id);if(!ended&&host.valid())port.postMessage({seq:m.seq,rows});else cleanup()}catch{if(!ended){if(!host.valid())cleanup();else port.postMessage({seq:m.seq,error:true})}}};
+  port.onmessage=async e=>{const m=e.data;if(ended||!m||!Number.isSafeInteger(m.seq)||!['directory','thread'].includes(m.kind))return;try{const rows=await host.read(m.kind,m.id);if(!ended&&host.valid()){ready=true;clearTimeout(timeout);if(m.kind==='directory')title.textContent='0v · Admin · '+rows.length+' liên hệ · Chỉ đọc';port.postMessage({seq:m.seq,rows})}else cleanup()}catch{if(!ended){if(!host.valid())cleanup();else{clearTimeout(timeout);if(m.kind==='directory')title.textContent='0v · Không đọc được danh bạ';port.postMessage({seq:m.seq,error:true})}}}};
   // Opaque sandbox origin; transfer only a private read port to the local frame.
   frame.contentWindow.postMessage({type:'chat-0v-read-init',scope},'*',[channel.port2]);
  });
  dialog.append(bar,frame);document.body.append(dialog);try{dialog.showModal()}catch{cleanup()}
 }
-document.addEventListener('v21-auth-state',open);open();
+function syncEntry(){
+ for(const button of document.querySelectorAll('[data-chat-0v-admin]'))button.hidden=!admin();
+ if(requested()&&!launched&&admin())open();
+}
+document.addEventListener('click',e=>{const button=e.target.closest?.('[data-chat-0v-admin]');if(!button||!admin())return;e.preventDefault();open()});
+document.addEventListener('v21-auth-state',syncEntry);syncEntry();
 })();
 
 </script>
