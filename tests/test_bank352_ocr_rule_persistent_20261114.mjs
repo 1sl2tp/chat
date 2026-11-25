@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {RULE_VERSION,SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,
- BILL_LITERAL_MEMO_OCR_GUIDANCE} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
+ BILL_LITERAL_MEMO_OCR_GUIDANCE,readV4Fields,buildStoredBillTenFields} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
 import {previewBillAppMatch} from "../supabase/functions/v21-bank-bill-event/bill-app-preview.mjs";
 
 // BANK-352: pure, anonymized regression. No bank API, customer messaging,
@@ -52,3 +52,13 @@ const casebook=readFileSync(new URL("../docs/bank-bill-ocr-casebook.md",import.m
 assert(casebook.includes("BANK-352 — Bài học OCR"));
 assert(casebook.toLowerCase().includes("không phải huấn luyện lại"));
 console.log("BANK-352: existing Gemini token/model, persistent OCR instruction, bank-only confirmation and duplicate guards PASS");
+
+// Multiline recipient memo and repeated-digit regression; only synthetic text.
+assert(BILL_LITERAL_MEMO_OCR_GUIDANCE.includes("TẤT CẢ các dòng"));
+assert(BILL_LITERAL_MEMO_OCR_GUIDANCE.includes("từ phải qua trái"));
+const multi={recipient_account_visible:"123456799999",recipient_account_last5:"99999",transfer_content:"KHACH MAU\nChuyen tien"};
+const fields=readV4Fields(multi);
+assert.equal(fields.receiving_account,multi.recipient_account_visible);
+assert.equal(fields.transfer_content,multi.transfer_content);
+assert.equal(buildStoredBillTenFields(multi,fields,5000000).transfer_content,multi.transfer_content);
+assert.equal(buildStoredBillTenFields(multi,fields,5000000).recipient_account,multi.recipient_account_visible);
