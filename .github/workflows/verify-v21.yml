@@ -95,6 +95,8 @@ jobs:
           node --check app.js
           node tests/test_chat441_ios_photo_multiselect_20261123.cjs
 
+      - name: CHAT-447 0v read-only host contract
+        run: node tests/test_chat447_0v_read_host.cjs
       - name: CHAT-443 Chat CRM canonical icon library and single-owner navigation
         run: |
           node --check ui-icons.js

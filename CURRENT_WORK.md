@@ -1,3 +1,10 @@
+## 2026-11-26 — CHAT-447 · 0v dùng chung phiên và database CHAT
+
+- E0: 0v v13.167 PR #137 merged 7ce51cdc0212f2f95955d21b0ff27b2618463701, read contract CI passed. Supabase schema-only audit confirmed sidebar/snapshot read-only bodies and server auth + conversation membership; new login can revoke previous non-admin session. Choose existing CHAT tab, no second login or token transfer.
+- E1: V21.72.84 candidate `?ui=0v` opens sandboxed read-only view built from exact pinned 0v source before Main.mount, no demo composer/business actions, no network in child (CSP), private MessageChannel passes minimized data, existing host uses approved auth/client and existing sidebar/snapshot only, no create conversation, receipt, heartbeat, send or collect. Close/clear on auth change. Host only opens on explicit query after existing login. No independent auth or database. Existing CHAT untouched outside opt-in. 0v asset is pinned derivative, future sync must update from approved 0v source. Text only, no avatar/media/realtime yet. No real reads tested; host mock smoke and JS syntax pass, full CI pending. Version and SW release string synchronized; canonical build CI. No production deployment until gates. PR #414 alternative typography branch remains unmerged and has conflicting version; do not merge both without rebase. E2/E3/E4/E5 pending.
+
+---
+
 ## 2026-11-23 — CHAT-QW-01 · Cài nguồn GitHub uy tín và lịch tự rà soát có giới hạn
 
 - **E0 / Yêu cầu:** người dùng giao AI chủ động theo dõi, học nguồn Github uy tín và sửa lỗi CHAT gốc theo lịch để không phải tự giám sát; ưu tiên 15 phút hoặc 1 giờ. ChatGPT Task chỉ hỗ trợ tối đa **mỗi giờ**, đã tạo lịch `Tự kiểm tra và cải tiến CHAT` chạy từ 21:00 VN ngày 23/11/2026. Giới hạn chạy: kiểm chứng, tạo nhánh/PR nháp có bằng chứng, **không tự merge** hay đẩy bản chưa nghiệm thu lên production.

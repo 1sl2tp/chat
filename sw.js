@@ -6,7 +6,7 @@ function chatPushDisplayPreview(value){
  const raw=String(value||'');
  try{return self.V21ChatMessageCase?.previewCase?.(raw)||raw;}catch{return raw;}
 }
-const RELEASE_VERSION='V21.72.83';
+const RELEASE_VERSION='V21.72.84';
 const MODULE_CONTRACT_VERSION='pwa-sw-v1';
 // BANK-177: reload one-time cached shell for the live bank reconciliation table.
 // Keep offline-first startup; do not add per-navigation network requests.
@@ -494,6 +494,12 @@ self.addEventListener('fetch',event=>{
   if(url.origin!==self.location.origin)return;
   if(url.pathname.endsWith('/version.json')||url.pathname.endsWith('version.json')){
     event.respondWith(fetch(new Request(request,{cache: 'no-store'})));
+    return;
+  }
+  // CHAT-447: the sandboxed read view is not the canonical CHAT shell.
+  // Never cache it as './', or fall back to the main CHAT document inside it.
+  if(url.pathname.endsWith('/0v-read.html')){
+    event.respondWith(fetch(new Request(request,{cache:'no-store'})));
     return;
   }
   if(request.mode==='navigate'){
