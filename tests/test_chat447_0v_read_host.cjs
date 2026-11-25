@@ -13,5 +13,14 @@ const {createReadHost}=require('../chat-0v-read-host.js');
  await assert.rejects(host.read('send','c'),/not_allowed/);assert.equal(calls.length,2);
  const slow={rpc:async()=>await new Promise(r=>{release=r})};const other=createReadHost({session:()=>s,client:()=>slow});other.start();const pending=other.read('directory');s={...s,appSessionId:'changed'};release({data:[]});await assert.rejects(pending,/session_changed/);
  assert.equal(host.valid(),false);host.close();await assert.rejects(host.read('directory'),/unavailable/);
+ // Simulate service-worker fetch for the sandbox: no public shell cache read/write,
+ // including when the network fails. The old main-document fallback is forbidden.
+ const vm=require('node:vm'),sw=require('node:fs').readFileSync('sw.js','utf8'),handlers={};
+ let offline=false,fetches=0,cacheTouches=0;
+ const response={ok:true};
+ const worker={location:{origin:'https://chat.taphoa.xyz'},addEventListener:(type,fn)=>{handlers[type]=fn}};
+ vm.runInNewContext(sw,{self:worker,URL,Request:class{constructor(req,opts){this.url=req.url;this.cache=opts.cache}},fetch:async req=>{fetches++;assert.equal(req.cache,'no-store');if(offline)throw Error('offline');return response},caches:{open(){cacheTouches++;throw Error('unexpected cache access')}}});
+ function iframeFetch(){let result;handlers.fetch({request:{method:'GET',mode:'navigate',destination:'iframe',url:'https://chat.taphoa.xyz/0v-read.html'},respondWith:p=>{result=p}});return result}
+ assert.equal(await iframeFetch(),response);offline=true;await assert.rejects(iframeFetch(),/offline/);assert.equal(fetches,2);assert.equal(cacheTouches,0);
  const fs=require('node:fs'),asset=fs.readFileSync('0v-read.html','utf8');assert(asset.includes("connect-src 'none'"));assert(!asset.includes('Main.mount();'));assert(!asset.includes('ReleaseUpdater.start();'));console.log('CHAT-447 read scope, no writes, stale session and asset isolation PASS');
 })().catch(e=>{console.error(e);process.exitCode=1});
