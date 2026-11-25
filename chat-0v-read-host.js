@@ -5,7 +5,7 @@ function createReadHost({session,client}){
  let owner=null,db=null,allowed=new Map(),closed=false,generation=0;
  function current(){
   const s=session(),c=client();
-  if(closed||s?.state!=='AUTHENTICATED'||!s.account?.id||!s.appSessionId||!c)throw Error('session_unavailable');
+  if(closed||s?.state!=='AUTHENTICATED'||s.account?.role!=='admin'||!s.account?.id||!s.appSessionId||!c)throw Error('session_unavailable');
   if(owner&&(owner.accountId!==s.account.id||owner.appSessionId!==s.appSessionId||db!==c))throw Error('session_changed');
   if(!owner){owner={accountId:s.account.id,appSessionId:s.appSessionId};db=c}
   return owner;
@@ -35,33 +35,40 @@ function createReadHost({session,client}){
  return Object.freeze({start,read,close,valid(){try{current();return true}catch{return false}}});
 }
 if(typeof module==='object'&&module.exports){module.exports={createReadHost};return}
-if(new URLSearchParams(location.search).get('ui')!=='0v')return;
-let launched=false;
+let launched=false,active=false;
+const requested=()=>new URLSearchParams(location.search).get('ui')==='0v';
+function admin(){const s=window.V21AuthSessionStore?.snapshot();return s?.state==='AUTHENTICATED'&&s.account?.role==='admin'}
 function open(){
- if(launched||document.querySelector('dialog[open]'))return;
+ if(active||document.querySelector('dialog[open]')||!admin())return;
  const auth=window.V21AuthSessionStore;
- if(auth?.snapshot()?.state!=='AUTHENTICATED')return;
+ if(!admin())return;
  const host=createReadHost({session:()=>auth.snapshot(),client:()=>auth.getClient()});
  let scope;try{scope=host.start()}catch{return}
- launched=true;
+ launched=true;active=true;
  const dialog=document.createElement('dialog');dialog.setAttribute('aria-label','0v · Chỉ đọc');
  dialog.style.cssText='box-sizing:border-box;position:fixed;inset:0;margin:0;padding:0;border:0;width:100%;height:100%;max-width:none;max-height:none;background:white;color:#111;display:grid;grid-template-rows:44px minmax(0,1fr)';
  const bar=document.createElement('div');bar.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #ddd;font:14px system-ui';
- const title=document.createElement('span');title.textContent='0v · Dữ liệu CHAT · Chỉ đọc';
+ const title=document.createElement('span');title.textContent='0v · Admin · Đang kết nối…';
  const exit=document.createElement('button');exit.type='button';exit.textContent='Về CHAT';exit.style.cssText='min-height:44px;padding:0 12px';bar.append(title,exit);
  const frame=document.createElement('iframe');frame.title='0v · Danh bạ và hội thoại';frame.setAttribute('sandbox','allow-scripts');frame.referrerPolicy='no-referrer';frame.style.cssText='width:100%;height:100%;border:0;min-height:0';frame.src='./0v-read.html';
- let port=null,ended=false;
- function cleanup(){if(ended)return;ended=true;host.close();port?.close();frame.remove();dialog.remove();document.removeEventListener('v21-auth-state',authChange);window.removeEventListener('pagehide',cleanup)}
+ let port=null,ended=false,ready=false;
+ const timeout=setTimeout(()=>{if(!ended&&!ready)title.textContent='0v · Chưa kết nối — thử mở lại';},12000);
+ function cleanup(){if(ended)return;ended=true;active=false;clearTimeout(timeout);host.close();port?.close();frame.remove();dialog.remove();document.removeEventListener('v21-auth-state',authChange);window.removeEventListener('pagehide',cleanup)}
  function authChange(){if(!host.valid())cleanup()}
  exit.addEventListener('click',()=>dialog.close());dialog.addEventListener('close',cleanup,{once:true});document.addEventListener('v21-auth-state',authChange);window.addEventListener('pagehide',cleanup,{once:true});
  frame.addEventListener('load',()=>{
   if(ended||!host.valid()||port){cleanup();return}
   const channel=new MessageChannel();port=channel.port1;
-  port.onmessage=async e=>{const m=e.data;if(ended||!m||!Number.isSafeInteger(m.seq)||!['directory','thread'].includes(m.kind))return;try{const rows=await host.read(m.kind,m.id);if(!ended&&host.valid())port.postMessage({seq:m.seq,rows});else cleanup()}catch{if(!ended){if(!host.valid())cleanup();else port.postMessage({seq:m.seq,error:true})}}};
+  port.onmessage=async e=>{const m=e.data;if(ended||!m||!Number.isSafeInteger(m.seq)||!['directory','thread'].includes(m.kind))return;try{const rows=await host.read(m.kind,m.id);if(!ended&&host.valid()){ready=true;clearTimeout(timeout);if(m.kind==='directory')title.textContent='0v · Admin · '+rows.length+' liên hệ · Chỉ đọc';port.postMessage({seq:m.seq,rows})}else cleanup()}catch{if(!ended){if(!host.valid())cleanup();else{clearTimeout(timeout);if(m.kind==='directory')title.textContent='0v · Không đọc được danh bạ';port.postMessage({seq:m.seq,error:true})}}}};
   // Opaque sandbox origin; transfer only a private read port to the local frame.
   frame.contentWindow.postMessage({type:'chat-0v-read-init',scope},'*',[channel.port2]);
  });
  dialog.append(bar,frame);document.body.append(dialog);try{dialog.showModal()}catch{cleanup()}
 }
-document.addEventListener('v21-auth-state',open);open();
+function syncEntry(){
+ for(const button of document.querySelectorAll('[data-chat-0v-admin]'))button.hidden=!admin();
+ if(requested()&&!launched&&admin())open();
+}
+document.addEventListener('click',e=>{const button=e.target.closest?.('[data-chat-0v-admin]');if(!button||!admin())return;e.preventDefault();open()});
+document.addEventListener('v21-auth-state',syncEntry);syncEntry();
 })();
