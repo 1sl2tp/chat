@@ -496,6 +496,12 @@ self.addEventListener('fetch',event=>{
     event.respondWith(fetch(new Request(request,{cache: 'no-store'})));
     return;
   }
+  // CHAT-447: the sandboxed read view is not the canonical CHAT shell.
+  // Never cache it as './', or fall back to the main CHAT document inside it.
+  if(url.pathname===new URL('./0v-read.html',self.registration.scope).pathname){
+    event.respondWith(fetch(new Request(request,{cache:'no-store'})));
+    return;
+  }
   if(request.mode==='navigate'){
     // Same freshness policy for iOS standalone, Android PWA and browser tabs.
     // Preserve deep-link query arguments, retain the last good offline shell.
