@@ -1,3 +1,11 @@
+## 2026-11-26 — CHAT-445 · Áp dụng typography cha 0v vào CHAT gốc
+
+- E0: user yêu cầu chuyển thiết kế 0v sang Chat đang dùng, không copy HTML demo. Đọc 0v v13.166 commit 72097c5fda95d88936b15063b25b77aac378eaa1 và CHAT c80dc64eeb7f6d4e07cb6c0fca8305859d0d7755; hiện CSS desktop/mobile nhiều trị số khác nhau. Owner: `ui-foundation.css` token, `index.source.html` base, `mobile-ui-polish.css` active directory/chat consumers.
+- E1: V21.72.84 dùng semantic type body 16/22, medium 500 cho tên; detail 14/20 cho preview/filter; caption 13/18 cho giờ; chat 17/24. Bảng track danh bạ theo line token, giữ min row 64, avatar 40, scrollbar/search owner và unread emphasis. Giữ nguyên composer/input, keyboard/VisualViewport, DOM/JS, scroll policy, notification/realtime/auth, media, bank/CRM nghiệp vụ và SW; không gửi tin hoặc ghi DB. Chỉ chuyển typography, chưa chuyển toàn bộ bố cục/Work. Không thêm CSS override layer. Các rule lịch sử chưa dọn hết.
+- E2: update test CHAT-435 theo token, cú pháp kiểm thử đạt; full Verify V21 pending, canonical build do CI tạo từ index.source.html. Không sửa index.html generated trực tiếp. E3 Pages và E4 device/auth visual pending; rollback revert PR. No additional polling, provider call or cron. Chủ động thực hiện theo yêu cầu user, chỉ phát hành theo Verify V21 → Pages.
+
+---
+
 ## 2026-11-23 — CHAT-QW-01 · Cài nguồn GitHub uy tín và lịch tự rà soát có giới hạn
 
 - **E0 / Yêu cầu:** người dùng giao AI chủ động theo dõi, học nguồn Github uy tín và sửa lỗi CHAT gốc theo lịch để không phải tự giám sát; ưu tiên 15 phút hoặc 1 giờ. ChatGPT Task chỉ hỗ trợ tối đa **mỗi giờ**, đã tạo lịch `Tự kiểm tra và cải tiến CHAT` chạy từ 21:00 VN ngày 23/11/2026. Giới hạn chạy: kiểm chứng, tạo nhánh/PR nháp có bằng chứng, **không tự merge** hay đẩy bản chưa nghiệm thu lên production.

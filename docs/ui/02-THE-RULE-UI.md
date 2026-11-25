@@ -87,3 +87,7 @@ Tránh:
 - global `window.*` mới nếu module boundary hiện tại có thể dùng import/event contract.
 
 Mỗi thay đổi phải trả lời được: **event sinh ở đâu → owner nào nhận → state nào đổi → vùng nào render lại**.
+
+
+## CHAT-445 — Typography cha từ 0v
+`ui-foundation.css` sở hữu semantic font/line/weight; consumer hiện hữu dùng token, không copy demo HTML hoặc tạo root/keyboard mới. Tên 16/22 medium; preview/filter 14/20; giờ 13/18; chat 17/24. Input/composer giữ owner riêng và thông số hiện hành. Trạng thái unread dùng weight, không đổi font-size. Track text theo line token; giữ row/scroll/focus behavior. Phiên bản V21.72.84 candidate, Verify V21 và device pending.

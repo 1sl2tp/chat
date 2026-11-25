@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<meta name="app-release-version" content="V21.72.83">
+<meta name="app-release-version" content="V21.72.84">
 <meta name="app-build-id" content="__APP_BUILD_ID__">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -652,8 +652,8 @@ button{
 /* CHAT v3 follow-up: plain text also contains unbroken SKU/phone strings.
    Wrap within the message without changing the thread scroll owner. */
 .message-body{
-  font-size:1rem;
-  line-height:1.5rem;
+  font-size:var(--ui-type-chat,17px);
+  line-height:var(--ui-line-chat,24px);
   white-space:normal;
   overflow-wrap:anywhere;
 }
@@ -3956,10 +3956,10 @@ body:has(#stageLayout[data-bank-report-active="true"]) .top-mode-tab[data-top-ta
   row-gap:2px;
   align-items:center;
 }
-.shell-contact-name{grid-column:1;grid-row:1;min-width:0;font-size:.875rem;line-height:1.15rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shell-contact-preview{grid-column:1;grid-row:2;min-width:0;color:var(--theme-content-secondary);font-size:.75rem;line-height:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell-contact-name{grid-column:1;grid-row:1;min-width:0;font-size:var(--ui-type-body,16px);line-height:var(--ui-line-body,22px);font-weight:var(--ui-weight-medium,500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell-contact-preview{grid-column:1;grid-row:2;min-width:0;color:var(--theme-content-secondary);font-size:var(--ui-type-detail,14px);line-height:var(--ui-line-detail,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shell-contact-preview:empty{display:none}
-.shell-contact-time{grid-column:2;grid-row:1;align-self:center;justify-self:end;min-width:0;max-width:100%;width:52px;margin:0;color:var(--theme-content-tertiary);font-size:.6875rem;line-height:1rem;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.shell-contact-time{grid-column:2;grid-row:1;align-self:center;justify-self:end;min-width:0;max-width:100%;width:52px;margin:0;color:var(--theme-content-tertiary);font-size:var(--ui-type-caption,13px);line-height:var(--ui-line-caption,18px);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .shell-contact-manage{
   position:absolute;
   right:6px;
