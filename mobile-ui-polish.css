@@ -1597,8 +1597,8 @@
     margin-top:13px!important;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #messageWindow .message-body{
-    font-size:15px;
-    line-height:1.38rem;
+    font-size:var(--ui-type-chat);
+    line-height:var(--ui-line-chat);
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] .message-day-separator{
     margin-block:11px 8px;
@@ -1781,8 +1781,8 @@
     padding-bottom:25px!important;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow .message-body{
-    font-size:15px;
-    line-height:1.38rem; /* preserve virtualized message height estimate */
+    font-size:var(--ui-type-chat);
+    line-height:var(--ui-line-chat); /* CHAT-445: existing scroll owner measures rendered rows */
     overflow-wrap:anywhere;
   }
   #appShell[data-auth-state="authenticated"][data-route="chat"] #stageLayout:not([data-bank-report-active="true"]) #messageWindow>.message-row[data-turn="user"]+.message-row[data-turn="user"],
@@ -2306,16 +2306,16 @@
     background:transparent!important;
     border-bottom:2px solid transparent!important;
     color:var(--theme-content-secondary)!important;
-    font-size:13px!important;
-    line-height:18px;
-    font-weight:550!important;
+    font-size:var(--ui-type-detail)!important;
+    line-height:var(--ui-line-detail);
+    font-weight:var(--ui-weight-medium)!important;
     white-space:nowrap;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter[data-active="true"]{
     background:transparent!important;
     border-bottom-color:var(--ui-text-primary,var(--theme-content-primary))!important;
     color:var(--theme-content-primary)!important;
-    font-weight:650!important;
+    font-weight:var(--ui-weight-semibold)!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .contact-directory-filter-line[data-expanded="true"]{
     align-items:flex-start;
@@ -2403,7 +2403,7 @@
     width:100%;
     min-width:0;
     grid-template-columns:minmax(0,1fr) 58px;
-    grid-template-rows:20px 19px;
+    grid-template-rows:var(--ui-line-body) var(--ui-line-detail);
     column-gap:8px;
     row-gap:2px;
     align-content:center;
@@ -2415,10 +2415,10 @@
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
-    font-size:15px!important;
+    font-size:var(--ui-type-body)!important;
     color:var(--ui-text-primary,var(--theme-content-primary))!important;
-    line-height:19px!important;
-    font-weight:625!important;
+    line-height:var(--ui-line-body)!important;
+    font-weight:var(--ui-weight-medium)!important;
     letter-spacing:-.012em;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-preview{
@@ -2429,14 +2429,14 @@
     line-clamp:unset;
     min-width:0;
     max-width:100%;
-    max-height:19px;
+    max-height:var(--ui-line-detail);
     overflow:hidden!important;
     overflow-wrap:anywhere;
     white-space:nowrap!important;
     text-overflow:ellipsis;
-    font-size:13px!important;
-    line-height:19px!important;
-    font-weight:400!important;
+    font-size:var(--ui-type-detail)!important;
+    line-height:var(--ui-line-detail)!important;
+    font-weight:var(--ui-weight-regular)!important;
     color:var(--ui-text-secondary,var(--theme-content-secondary))!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-preview:empty{
@@ -2456,9 +2456,9 @@
     white-space:nowrap;
     text-align:right;
     color:var(--theme-content-tertiary)!important;
-    font-size:11px!important;
-    line-height:18px!important;
-    font-weight:450!important;
+    font-size:var(--ui-type-caption)!important;
+    line-height:var(--ui-line-caption)!important;
+    font-weight:var(--ui-weight-regular)!important;
     font-variant-numeric:tabular-nums;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row:not(:last-child)::after{
@@ -2467,10 +2467,10 @@
     background:color-mix(in srgb,var(--theme-border-default) 28%,transparent);
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-name{
-    font-weight:750!important;
+    font-weight:var(--ui-weight-semibold)!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-preview{
-    font-weight:600!important;
+    font-weight:var(--ui-weight-semibold)!important;
     color:var(--theme-content-primary)!important;
   }
   #appShell[data-auth-state="authenticated"][data-mobile-directory="true"] #shellNavigationLayer .shell-contact-row[data-unread="true"] .shell-contact-time{

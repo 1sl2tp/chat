@@ -34,6 +34,15 @@
   --ui-radius-20:20px;
   --ui-radius-pill:999px;
 
+  /* CHAT-445: semantic text scale imported from 0v v13.166; no second runtime. */
+  --ui-type-version:11px; --ui-line-version:16px;
+  --ui-type-caption:13px; --ui-line-caption:18px;
+  --ui-type-detail:14px; --ui-line-detail:20px;
+  --ui-type-body:16px; --ui-line-body:22px;
+  --ui-type-title:18px; --ui-line-title:24px;
+  --ui-type-chat:17px; --ui-line-chat:24px;
+  --ui-weight-regular:400; --ui-weight-medium:500;
+  --ui-weight-semibold:600; --ui-weight-bold:700;
   --ui-title-compact:1.125rem;
   --ui-line-title-compact:1.5rem;
   --ui-body-font-size:15px;
@@ -61,8 +70,8 @@
   --ui-chat-message-gap:8px;
   --ui-chat-message-max:86%;
   --ui-chat-message-radius:18px;
-  --ui-chat-message-text-size:15px;
-  --ui-chat-message-line-height:1.42rem;
+  --ui-chat-message-text-size:var(--ui-type-chat);
+  --ui-chat-message-line-height:var(--ui-line-chat);
   --ui-icon-12:12px;
   --ui-icon-14:14px;
   --ui-icon-16:16px;
