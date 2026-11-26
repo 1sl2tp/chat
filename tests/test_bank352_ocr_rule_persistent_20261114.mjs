@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {RULE_VERSION,SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,
- BILL_LITERAL_MEMO_OCR_GUIDANCE,readV4Fields,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
+ BILL_LITERAL_MEMO_OCR_GUIDANCE,readV4Fields,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,parseSenderDebitNotice,validateVisionRead,SENDER_DEBIT_NOTICE_GUIDANCE} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
 import {previewBillAppMatch} from "../supabase/functions/v21-bank-bill-event/bill-app-preview.mjs";
 
 // BANK-352: pure, anonymized regression. No bank API, customer messaging,
@@ -64,13 +64,26 @@ assert.equal(buildStoredBillTenFields(multi,fields,5000000).transfer_content,mul
 assert.equal(buildStoredBillTenFields(multi,fields,5000000).recipient_account,multi.recipient_account_visible);
 
 const first={image_type:"successful_transfer_receipt",transfer_success_visible:true,recipient_account_visible:"290118199999"};
-const second={role:"recipient_account",clear:true,visible:"2901181999999",digits:[..."2901181999999"],digit_count:13,trailing_nines:6};
+const second={role:"recipient_account",clear:true,visible:"2901181999999",digits:[..."2901181999999"],reverse_digits:[..."2901181999999"].reverse(),digit_count:13,trailing_nines:6};
 assert.equal(needsAccountDigitRecheck(first),true);
 assert.equal(resolveAccountDigitRecheck(first,second)?.second_visible,"2901181999999");
 assert.equal(first.recipient_account_visible,"290118199999");
-for(const bad of [{...second,clear:false},{...second,role:"sender_account"},{...second,digits:[..."290118199999"]},{...second,digit_count:12},{...second,trailing_nines:5},{...second,visible:"2901181999998"}])assert.equal(resolveAccountDigitRecheck(first,bad),null);
+for(const bad of [{...second,clear:false},{...second,reverse_digits:[]},{...second,reverse_digits:[..."2901181999999"]},{...second,role:"sender_account"},{...second,digits:[..."290118199999"]},{...second,digit_count:12},{...second,trailing_nines:5},{...second,visible:"2901181999998"}])assert.equal(resolveAccountDigitRecheck(first,bad),null);
 assert.equal(needsAccountDigitRecheck({...first,recipient_account_visible:"2901181999999"}),false);
 assert.equal(needsAccountDigitRecheck({...first,image_type:"not_transfer_receipt"}),false);
 assert.equal(ACCOUNT_DIGIT_RECHECK_PROMPT.includes("2901181999999"),false);
 assert(worker.includes("vision.modelRequestCount<BILL_OCR_MAX_MODEL_REQUESTS"));
 assert(worker.includes("account_digit_recheck:accountDigitRecheck"));
+
+assert(worker.includes("maxOutputTokens:2048"));
+assert(worker.includes("account_digit_recheck_state:accountDigitRecheckState"));
+
+const debitNotice={"image_type":"successful_transfer_receipt","image_layout":"credit_notification","transaction_nature":"transfer","transaction_selection":"single_detail","transfer_success_visible":true,"amount_role":"sender_debit","amount_text":"-1,234,000VND","amount_vnd":1234000,"amount_clear":true,"recipient_name":"NGUYEN VAN MAU","recipient_account_visible":"1234567890123","transfer_date_printed_vn":"24/11/26","transfer_time_printed_vn":"15:16","transfer_date_vn":"2026-11-24","transfer_content":"KHACH MAU chuyen tien","sender_debit_gd_text":"GD: -1,234,000VND 24/11/26 15:16"};
+
+assert.equal(validateVisionRead(debitNotice).amount_vnd,1234000);
+assert.equal(parseSenderDebitNotice(debitNotice)?.day,"2026-11-24");
+assert.equal(readV4Fields(debitNotice).transfer_at_vn,"2026-11-24 15:16");
+assert.equal(readV4Fields(debitNotice).transfer_date_printed_vn,"24/11/26");
+for(const bad of [{...debitNotice,image_type:"bank_credit_notification"},{...debitNotice,amount_vnd:9876543},{...debitNotice,transfer_date_printed_vn:"25/11/26"},{...debitNotice,sender_debit_gd_text:""},{...debitNotice,sender_debit_gd_text:debitNotice.sender_debit_gd_text+" |SD: 9876543VND"},{...debitNotice,sender_debit_gd_text:debitNotice.sender_debit_gd_text.replace("GD: -","GD: +")}])assert.equal(parseSenderDebitNotice(bad),null);
+assert(TEN_FIELD_BILL_GUIDANCE.includes(SENDER_DEBIT_NOTICE_GUIDANCE));
+assert.equal(Object.hasOwn(buildStoredBillTenFields(debitNotice,readV4Fields(debitNotice),1234000),"sender_debit_gd_text"),false);

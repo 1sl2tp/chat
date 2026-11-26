@@ -54,7 +54,13 @@ export const BILL_LITERAL_MEMO_OCR_GUIDANCE=[
 ].join("\n");
 
 // BANK-317: extract once on image ingestion, store 10 fields, use saved OCR thereafter.
+export const SENDER_DEBIT_NOTICE_GUIDANCE=[
+ "DẠNG THÔNG BÁO BIẾN ĐỘNG SỐ DƯ BÊN GỬI: nếu có các nhãn TK, GD, SD, DEN, ND, đọc theo từng nhãn kể cả khi xuống dòng. TK trước GD là tài khoản bên gửi, không lấy. GD là số tiền giao dịch, ngày và giờ. SD chỉ là dấu mốc kết thúc GD: BỎ QUA toàn bộ giá trị số dư của người gửi, không đọc, không trả, không lưu. DEN là tên và STK nhận; ND là nội dung đến hết thông báo.",
+ "GD âm: giữ dấu âm và VND ở amount_text, amount_vnd là trị tuyệt đối, amount_role=sender_debit. Thông báo giao dịch chuyển khoản đã thực hiện ở phía người gửi, có GD âm và DEN/ND rõ, thuộc successful_transfer_receipt, transaction_nature=transfer, image_layout=credit_notification; không dùng bank_credit_notification dành cho ghi có phía nhận. Không tự suy ra thành công từ số dư.",
+ "Ngày GD có thể in DD/MM/YY; chép nguyên văn vào transfer_date_printed_vn, giờ riêng. Đối với đúng dạng thông báo này, YY là 20YY, không dùng năm gửi Chat. Trả thêm sender_debit_gd_text: chỉ chép nguyên văn từ nhãn GD đến hết giờ giao dịch, dừng trước SD. Không chép số dư hoặc tài khoản gửi vào trường này. Nếu không phải dạng này trả null. Không đoán số tiền, ngày, giờ hay tài khoản."
+].join("\n");
 export const TEN_FIELD_BILL_GUIDANCE=[
+ SENDER_DEBIT_NOTICE_GUIDANCE,
  "KIỂM TRA ĐỦ 10 NHÃN CỦA MỘT BILL: ngân hàng gửi; ngân hàng nhận; tên tài khoản nhận; số tài khoản nhận; số tiền; ngày giao dịch; giờ giao dịch; nội dung chuyển khoản; mã tham chiếu; mã tra soát.",
  "ĐỌC KỸ vùng Người nhận/Người thụ hưởng với tên và STK; ngày và giờ là HAI trường độc lập: bill chỉ in ngày thì giờ=null, không mượn đồng hồ trên điện thoại.",
  "Mã tra soát là mã RIÊNG, không lấy mã tham chiếu để điền khi thiếu. Nếu in thêm Hình thức/Phương thức chuyển khoản, ghi transfer_method; không suy đoán.",
@@ -254,8 +260,8 @@ function parsePrintedBillTime(source){
 // Focused second vision reading. Do not supply the configured account to the model.
 export const ACCOUNT_DIGIT_RECHECK_PROMPT=[
  "Chỉ đọc vùng SỐ TÀI KHOẢN NGƯỜI NHẬN của giao dịch thành công trên chính ảnh này. Không đọc STK gửi, nội dung, số tiền, mã giao dịch hoặc số dư.",
- "Tìm dòng tài khoản trong khối người nhận. Đọc từng ký tự trái sang phải. Trả mỗi chữ số riêng biệt trong mảng digits, đếm tổng số phần tử và số chữ số 9 liên tiếp ở cuối bằng mắt. Sau đó đọc lại từ phải sang trái. Không thêm số dựa vào độ dài thường gặp, không đoán phần mờ.",
- "Chỉ trả JSON: { \"role\": \"recipient_account\" hoặc \"unknown\", \"visible\": \"chuỗi nguyên văn nhìn thấy\" hoặc null, \"digits\": [\"từng chữ số riêng\"], \"digit_count\": số nguyên, \"trailing_nines\": số nguyên, \"clear\": true hoặc false }. Nếu không rõ từng chữ số hoặc vai trò, clear=false."
+ "Tìm dòng tài khoản trong khối người nhận. Đọc từng ký tự trái sang phải. Trả mỗi chữ số riêng biệt trong mảng digits, đếm tổng số phần tử và số chữ số 9 liên tiếp ở cuối bằng mắt. Sau đó nhìn lại ảnh, đọc độc lập từ phải sang trái, trả riêng mảng reverse_digits theo thứ tự từ phải sang trái; không chỉ đảo mảng đầu bằng suy luận. Đếm theo từng vị trí nhìn thấy, không thêm số dựa vào độ dài thường gặp, không đoán phần mờ.",
+ "Chỉ trả JSON: { \"role\": \"recipient_account\" hoặc \"unknown\", \"visible\": \"chuỗi nguyên văn nhìn thấy\" hoặc null, \"digits\": [\"từng chữ số riêng\"], \"reverse_digits\": [\"từng chữ số từ phải sang trái\"], \"digit_count\": số nguyên, \"trailing_nines\": số nguyên, \"clear\": true hoặc false }. Nếu không rõ từng chữ số hoặc vai trò, clear=false."
 ].join("\n");
 const literalAccount=value=>typeof value==="string"?value.trim().replace(/[ \t]/g,""):"";
 export function needsAccountDigitRecheck(parsed){
@@ -268,10 +274,27 @@ export function resolveAccountDigitRecheck(parsed,second){
  if(!needsAccountDigitRecheck(parsed)||second?.role!=="recipient_account"||second?.clear!==true||
     !Array.isArray(second.digits)||second.digits.length!==13||
     !second.digits.every(x=>typeof x==="string"&&/^\d$/.test(x))||
+    !Array.isArray(second.reverse_digits)||second.reverse_digits.length!==13||
+    !second.reverse_digits.every(x=>typeof x==="string"&&/^\d$/.test(x))||
     second.digit_count!==13||second.trailing_nines!==6)return null;
  const literal=literalAccount(second.visible),digits=second.digits.join("");
- if(literal!==digits||literal!==first+"9"||literal!=="2901181999999")return null;
+ if(second.reverse_digits.join("")!==[...digits].reverse().join("")||literal!==digits||literal!==first+"9"||literal!=="2901181999999")return null;
  return {first_visible:parsed.recipient_account_visible,second_visible:second.visible,digit_count:13,trailing_nines:6,source:"independent_focused_vision"};
+}
+
+// Accept a short printed year only with a matching literal labelled debit GD.
+// Do not read, retain or parse the sender's balance.
+export function parseSenderDebitNotice(data){
+ if(data?.image_type!=="successful_transfer_receipt"||data?.image_layout!=="credit_notification"||data?.amount_role!=="sender_debit"||data?.transaction_nature!=="transfer"||data?.transfer_success_visible!==true)return null;
+ const raw=typeof data.sender_debit_gd_text==="string"?data.sender_debit_gd_text.trim():"";
+ if(!raw||raw.length>150)return null;
+ const m=/^GD\s*:\s*([-−–—][\d., ]+\s*VND)\s+(\d{1,2}\/\d{1,2}\/\d{2})\s+(\d{1,2}:[0-5]\d)$/iu.exec(raw.replace(/\s+/g," "));
+ if(!m)return null;
+ const [d,mon,y]=m[2].split("/"),day=verifiedBillDate(2000+Number(y),mon,d),clock=parsePrintedBillClock(m[3]);
+ const amount=parseAmountText(m[1]);
+ if(!day||!clock||amount===null||amount>=0||parseAmountText(data.amount_text)!==amount||data.amount_vnd!==Math.abs(amount)||data.amount_clear!==true)return null;
+ if(String(data.transfer_date_printed_vn||"").trim()!==m[2]||parsePrintedBillClock(data.transfer_time_printed_vn)?.clock!==clock.clock)return null;
+ return {day,clock:clock.clock,printedDate:m[2]};
 }
 
 export function readV4Fields(data,context={}){
@@ -301,7 +324,8 @@ export function readV4Fields(data,context={}){
  // A literal transcription is the primary receipt source. The AI-converted
  // ISO date is only a proposal and must not override printed DD/MM/YYYY.
  const printedDateText=plain(data?.transfer_date_printed_vn).slice(0,64);
- const printedBillDay=parsePrintedBillDate(printedDateText);
+ const noticeDate=parseSenderDebitNotice(data);
+ const printedBillDay=parsePrintedBillDate(printedDateText)||noticeDate?.day||null;
  const printedClockText=plain(data?.transfer_time_printed_vn).slice(0,32);
  const printedBillClock=parsePrintedBillClock(printedClockText);
  const {inlineClock,inlineClockText}=splitPrintedBillDateClock(printedDateText);

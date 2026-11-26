@@ -601,6 +601,7 @@ Deno.serve(async req=>{
    let usedModel=model;
    let parsed:any;
    let accountDigitRecheck:any=null;
+   let accountDigitRecheckState='not_required';
    try{
      // BANK-303: HTTP 200 may carry truncated or malformed AI JSON.
      // Validate the ENTIRE candidate and allow at most one alternate model
@@ -615,15 +616,17 @@ Deno.serve(async req=>{
      parsed=vision.parsed;
      // One focused read, same original pixels and total request/time ceiling.
      // No financial action uses this separate display-only evidence.
+     if(needsAccountDigitRecheck(parsed))accountDigitRecheckState='budget_exhausted';
      if(needsAccountDigitRecheck(parsed)&&vision.modelRequestCount<BILL_OCR_MAX_MODEL_REQUESTS&&!ctl.signal.aborted){
        try{
          const focused=await requestBillGemini({key:geminiKey,model:BILL_OCR_FALLBACK_MODEL,
            payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
-             generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:512}},
+             generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:2048}},
            signal:ctl.signal});
          const second=await parseBillGeminiResponse(focused.response,{signal:ctl.signal});
          accountDigitRecheck=resolveAccountDigitRecheck(parsed,second);
-       }catch{ /* retain original OCR on timeout, quota, invalid JSON or ambiguity */ }
+         accountDigitRecheckState=accountDigitRecheck?"confirmed":"digit_evidence_disagrees";
+       }catch(e){ const msg=String((e as Error)?.message||"");accountDigitRecheckState=ctl.signal.aborted?"timeout":msg==="gemini_invalid_json"?"invalid_json":/^gemini_http_\d{3}$/.test(msg)?msg:"request_failed"; }
      }
    }finally{clearTimeout(timeout);}
    const fields=readV4Fields(parsed,{sentAt:job.sent_at});
@@ -712,6 +715,7 @@ Deno.serve(async req=>{
       sender_name:fields.sender_name,sending_bank:fields.sending_bank,
       recipient_account_visible:fields.receiving_account_visible,
       account_digit_recheck:accountDigitRecheck,
+      account_digit_recheck_state:accountDigitRecheckState,
       transaction_selection:fields.transaction_selection,
       transaction_nature:fields.transaction_nature,
       transaction_datetime_vn:fields.transfer_at_vn,
