@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
+import {BILL_READER_VERSION,buildBillVisionPrompt,normalizeVisionMemo} from "./bill-vision-reader.mjs";
 import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,sanitizeJournalRecipientFields,SMALL_TEXT_RECHECK_PROMPT,needsSmallTextRecheck,recoverSmallText} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
@@ -595,8 +596,7 @@ Deno.serve(async req=>{
      "và ngày chuẩn hóa là null; không suy đoán dù ngân hàng có giao dịch.",
      "Các trường khác vẫn phải đọc/kiểm tra đúng, trả nguyên JSON ban đầu."
    ].join("\n"):"";
-   const prompt=SYSTEM_PROMPT+"\n\n"+TEN_FIELD_BILL_GUIDANCE+"\n\n"+BILL_LITERAL_MEMO_OCR_GUIDANCE+
-     (executionDateGuide?"\n\n"+executionDateGuide:"");
+   const prompt=buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,executionDateGuide);
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
    let usedModel=model;
    let parsed:any;
@@ -615,7 +615,7 @@ Deno.serve(async req=>{
      });
      usedModel=vision.usedModel;
      let modelRequests=vision.modelRequestCount;
-     parsed=sanitizeJournalRecipientFields(vision.parsed);
+     parsed=sanitizeJournalRecipientFields(normalizeVisionMemo(vision.parsed));
      // One focused read, same original pixels and total request/time ceiling.
      // No financial action uses this separate display-only evidence.
      if(needsAccountDigitRecheck(parsed))accountDigitRecheckState='budget_exhausted';
@@ -712,7 +712,8 @@ Deno.serve(async req=>{
      receiving_name:fields.receiving_name,receiving_account:fields.receiving_account,
      receiving_bank:fields.receiving_bank,sending_bank:fields.sending_bank,
      transfer_reference:fields.transfer_reference,transfer_at_vn:fields.transfer_at_vn,
-     raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,
+     raw_read:{read_mode:"amount_hash_only",rule_version:RULE_VERSION,reader_version:BILL_READER_VERSION,
+       memo_lines:parsed.memo_lines??null,memo_raw:parsed.memo_raw??null,memo_line_state:parsed.memo_line_state??null,
       bill_fields_v1:tenFields,
       trace_code:tenFields.trace_code,transfer_method:tenFields.transfer_method,
       bill_evidence_policy:"safe_memo_tier_v2",

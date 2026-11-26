@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import {buildBillVisionPrompt,normalizeVisionMemo} from "../supabase/functions/v21-bank-bill-event/bill-vision-reader.mjs";
+import {readV4Fields,requiredAutoCollectEvidence} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
+assert.match(buildBillVisionPrompt("existing schema","ten fields"),/VietinBank/);
+const raw={transfer_content:"Chuyen tien",memo_lines:["NGUYEN VAN MAU","Chuyen tien"],sender_name:"TEN NGOAI O"};
+const v=normalizeVisionMemo(raw);
+assert.equal(v.transfer_content,"NGUYEN VAN MAU Chuyen tien");assert.equal(v.memo_raw,"Chuyen tien");
+assert.deepEqual(v.memo_lines,raw.memo_lines);
+assert.equal(normalizeVisionMemo({transfer_content:"Chuyen tien",sender_name:"TEN NGOAI O"}).transfer_content,"Chuyen tien");
+assert.equal(normalizeVisionMemo({transfer_content:"A",memo_lines:["B"]}).transfer_content,"A");
+assert.equal(normalizeVisionMemo({transfer_content:"A\nB"}).transfer_content,"A B");
+assert.equal(normalizeVisionMemo({transfer_content:null,memo_lines:["A","B"]}).transfer_content,"A B");
+assert.equal(readV4Fields(v).transfer_content,"NGUYEN VAN MAU Chuyen tien");
+assert.equal(requiredAutoCollectEvidence(readV4Fields(v)).complete,false);
+console.log("Canonical reader and two-line memo synthetic fixtures passed");

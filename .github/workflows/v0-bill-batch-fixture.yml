@@ -7,6 +7,7 @@ on:
       - 'supabase/functions/v0-bill-audit-reread/**'
       - 'supabase/functions/v21-bank-bill-event/**'
       - 'tests/test_bill_account_decoration.mjs'
+      - 'tests/test_bill_vision_reader.mjs'
       - 'tests/test_v0_bill_batch_protocol.mjs'
       - 'tests/test_v0_bill_batch_review.mjs'
       - '.github/workflows/v0-bill-batch-fixture.yml'
@@ -34,6 +35,7 @@ jobs:
       - run: node tests/test_v0_bill_batch_protocol.mjs
       - run: node tests/test_v0_bill_batch_review.mjs
       - run: node tests/test_bill_account_decoration.mjs
+      - run: node tests/test_bill_vision_reader.mjs
       - name: Synthetic PostgreSQL only
         env:
           PGPASSWORD: fixture_only
