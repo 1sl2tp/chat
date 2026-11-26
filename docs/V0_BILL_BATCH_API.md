@@ -5,3 +5,6 @@ This PR implements and tests transport protocol only; production job store, endp
 
 ## Durable store candidate
 Added service-role-only RPC wrappers with private RLS tables, atomic reservation, no duplicate receipt/stage/revision, operation transition, optimistic annotation revision guard and separate batch-completed/save times. SQL not yet applied or executed; validate on ephemeral Postgres before release. No production job submission. Worker wiring, scope-checked image download and existing OCR validator normalization remain pending. Do not invoke network dispatch through SQL to bypass a blocked invocation.
+
+## Worker integration candidate
+Stage-one trusted server module now binds scoped candidate RPC, exact SHA-256 download validation, capped inline packing, durable reservation and result reconciliation with existing v8 OCR validator helpers. No browser route or deployment yet. The worker defaults to 5 originals per pilot; only unresolved items are marked needs_review for stage 2. Batch completion and save time are separate. Actual second-pass crop dispatch and a verified admin AAL2 invocation route remain pending. Previous synthetic DB CI passed; new source requires CI.

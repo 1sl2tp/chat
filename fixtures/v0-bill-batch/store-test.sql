@@ -7,7 +7,7 @@ CREATE SCHEMA v0_private;
 CREATE TABLE public.v21_accounts(id uuid PRIMARY KEY,role text,deleted_at timestamptz,locked_at timestamptz);
 CREATE TABLE public.v21_conversations(id uuid PRIMARY KEY,member_a uuid,member_b uuid);
 CREATE TABLE public.v21_messages(id uuid PRIMARY KEY,conversation_id uuid,deleted_at timestamptz);
-CREATE TABLE public.v21_media_assets(id uuid PRIMARY KEY,message_id uuid,owner_account_id uuid,conversation_id uuid,deleted_at timestamptz,mime_type text);
+CREATE TABLE public.v21_media_assets(id uuid PRIMARY KEY,message_id uuid,owner_account_id uuid,conversation_id uuid,deleted_at timestamptz,mime_type text,storage_key text);
 CREATE TABLE public.chat_bank_bill_receipts(id uuid PRIMARY KEY,media_asset_id uuid,message_id uuid,customer_account_id uuid,status text,receiving_account text,image_sha256 text,raw_read jsonb,amount_vnd bigint,ledger_id bigint);
 CREATE TABLE v0_private.bill_audit_annotations(receipt_id uuid,admin_account_id uuid,raw_hash text,review_state text,corrections jsonb,note text,revision integer,updated_at timestamptz DEFAULT now(),PRIMARY KEY(receipt_id,admin_account_id,raw_hash));
 \ir ../../docs/sql/v0-bill-batch-store.sql
@@ -25,6 +25,7 @@ DO $test$
 DECLARE rid uuid:='00000000-0000-0000-0000-000000000006'; jid uuid:='00000000-0000-0000-0000-000000000007'; other uuid:='00000000-0000-0000-0000-000000000008'; items jsonb; result jsonb;
 BEGIN
  items:=jsonb_build_array(jsonb_build_object('receipt_id',rid,'image_sha256',repeat('a',64),'revision',0,'stage',1,'key',rid::text||':1:0'));
+ IF jsonb_array_length(public.v0_bill_batch_candidates('00000000-0000-0000-0000-000000000001',5))<>1 THEN RAISE EXCEPTION 'candidate scope'; END IF;
  result:=public.v0_bill_batch_reserve(jid,'gemini-3.5-flash-lite',items);
  IF result->>'acquired' IS DISTINCT FROM 'true' THEN RAISE EXCEPTION 'reserve failed'; END IF;
  result:=public.v0_bill_batch_reserve(jid,'gemini-3.5-flash-lite',items);
@@ -32,6 +33,8 @@ BEGIN
  result:=public.v0_bill_batch_reserve(other,'gemini-3.5-flash-lite',items);
  IF result->>'acquired' IS DISTINCT FROM 'false' THEN RAISE EXCEPTION 'duplicate job allowed'; END IF;
  PERFORM public.v0_bill_batch_transition(jid,'batches/fixture','submitted');
+ IF public.v0_bill_batch_job('00000000-0000-0000-0000-000000000001',jid)->>'operation' IS DISTINCT FROM 'batches/fixture' THEN RAISE EXCEPTION 'job scope'; END IF;
+ IF jsonb_array_length(public.v0_bill_batch_candidates('00000000-0000-0000-0000-000000000001',5))<>0 THEN RAISE EXCEPTION 'reserved candidate'; END IF;
  result:=public.v0_bill_batch_save(jid,rid,now(),'{"memo":"fixture read"}','{"memo":"read"}','saved');
  IF result->>'state' IS DISTINCT FROM 'saved' OR result->>'saved_at' IS NULL OR result->>'ledger_written' IS DISTINCT FROM 'false' THEN RAISE EXCEPTION 'save failed'; END IF;
  result:=public.v0_bill_batch_save(jid,rid,now(),'{"memo":"should not overwrite"}','{"memo":"read"}','saved');

@@ -128,4 +128,44 @@ CREATE FUNCTION public.v0_bill_batch_transition(p_job uuid,p_operation text,p_st
 CREATE FUNCTION public.v0_bill_batch_save(p_job uuid,p_receipt uuid,p_completed timestamptz,p_corrections jsonb,p_fields jsonb,p_state text) RETURNS jsonb LANGUAGE sql SECURITY INVOKER SET search_path='' AS $f$ SELECT v0_private.bill_batch_save(p_job,p_receipt,p_completed,p_corrections,p_fields,p_state) $f$;
 REVOKE ALL ON FUNCTION public.v0_bill_batch_reserve(uuid,text,jsonb),public.v0_bill_batch_transition(uuid,text,text),public.v0_bill_batch_save(uuid,uuid,timestamptz,jsonb,jsonb,text) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.v0_bill_batch_reserve(uuid,text,jsonb),public.v0_bill_batch_transition(uuid,text,text),public.v0_bill_batch_save(uuid,uuid,timestamptz,jsonb,jsonb,text) TO service_role;
+-- Only return the approved admin's eligible historical originals. No arbitrary storage path input.
+CREATE FUNCTION v0_private.bill_batch_candidates(p_admin uuid,p_limit integer)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $f$
+DECLARE result jsonb;
+BEGIN
+ IF p_admin IS NULL OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 50 THEN RAISE EXCEPTION 'invalid_candidate_scope'; END IF;
+ SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.receipt_id),'[]'::jsonb) INTO result FROM (
+  SELECT r.id AS receipt_id,r.image_sha256,md5(coalesce(r.raw_read::text,'')) AS raw_hash,0 AS revision,a.storage_key,a.mime_type
+  FROM public.chat_bank_bill_receipts r
+  JOIN public.v21_media_assets a ON a.id=r.media_asset_id AND a.message_id=r.message_id AND a.owner_account_id=r.customer_account_id AND a.deleted_at IS NULL AND a.mime_type IN ('image/jpeg','image/jpg','image/png','image/webp')
+  JOIN public.v21_messages m ON m.id=a.message_id AND m.conversation_id=a.conversation_id AND m.deleted_at IS NULL
+  JOIN public.v21_conversations c ON c.id=a.conversation_id AND p_admin IN(c.member_a,c.member_b) AND r.customer_account_id IN(c.member_a,c.member_b)
+  JOIN public.v21_accounts ad ON ad.id=p_admin AND ad.role='admin' AND ad.deleted_at IS NULL AND ad.locked_at IS NULL
+  JOIN public.v21_accounts cust ON cust.id=r.customer_account_id AND cust.id<>p_admin AND cust.role='user' AND cust.deleted_at IS NULL AND cust.locked_at IS NULL
+  WHERE r.status IN ('received','review','amount_read','duplicate') AND r.receiving_account ~ '9{4,6}$' AND r.image_sha256 ~ '^[0-9a-f]{64}$'
+    AND NOT EXISTS(SELECT 1 FROM v0_private.bill_audit_annotations n WHERE n.receipt_id=r.id AND n.admin_account_id=p_admin AND n.raw_hash=md5(coalesce(r.raw_read::text,'')))
+    AND NOT EXISTS(SELECT 1 FROM v0_private.bill_batch_items i WHERE i.receipt_id=r.id AND i.stage=1 AND i.revision=0)
+  ORDER BY r.id LIMIT p_limit
+ ) x;
+ RETURN result;
+END;
+$f$;
+CREATE FUNCTION v0_private.bill_batch_job(p_admin uuid,p_job uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $f$
+DECLARE j v0_private.bill_batch_jobs%ROWTYPE;
+BEGIN
+ IF NOT EXISTS(SELECT 1 FROM public.v21_accounts ad WHERE ad.id=p_admin AND ad.role='admin' AND ad.deleted_at IS NULL AND ad.locked_at IS NULL) THEN RAISE EXCEPTION 'admin_required'; END IF;
+ SELECT * INTO j FROM v0_private.bill_batch_jobs WHERE id=p_job
+ AND EXISTS(SELECT 1 FROM v0_private.bill_batch_items i WHERE i.job_id=p_job AND i.admin_account_id=p_admin)
+ AND NOT EXISTS(SELECT 1 FROM v0_private.bill_batch_items i WHERE i.job_id=p_job AND i.admin_account_id<>p_admin);
+ IF NOT FOUND THEN RAISE EXCEPTION 'job_not_in_scope'; END IF;
+ RETURN jsonb_build_object('jobId',j.id,'model',j.model,'items',j.manifest,'operation',j.operation,'state',j.state);
+END;
+$f$;
+REVOKE ALL ON FUNCTION v0_private.bill_batch_candidates(uuid,integer),v0_private.bill_batch_job(uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;
+GRANT EXECUTE ON FUNCTION v0_private.bill_batch_candidates(uuid,integer),v0_private.bill_batch_job(uuid,uuid) TO service_role;
+CREATE FUNCTION public.v0_bill_batch_candidates(p_admin uuid,p_limit integer) RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER SET search_path='' AS $f$ SELECT v0_private.bill_batch_candidates(p_admin,p_limit) $f$;
+CREATE FUNCTION public.v0_bill_batch_job(p_admin uuid,p_job uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER SET search_path='' AS $f$ SELECT v0_private.bill_batch_job(p_admin,p_job) $f$;
+REVOKE ALL ON FUNCTION public.v0_bill_batch_candidates(uuid,integer),public.v0_bill_batch_job(uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;
+GRANT EXECUTE ON FUNCTION public.v0_bill_batch_candidates(uuid,integer),public.v0_bill_batch_job(uuid,uuid) TO service_role;
 COMMIT;
