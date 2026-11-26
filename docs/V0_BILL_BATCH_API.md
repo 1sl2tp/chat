@@ -1,0 +1,16 @@
+# 0v Bill historical Batch API candidate
+Sources: https://ai.google.dev/gemini-api/docs/batch-api and https://ai.google.dev/api/batch-mode. One image per independent request. Pilot 5; pack at most 50 bills and 12 MB JSON including base64 and crop data (below provider inline 20 MB limit). No collage. Read full image first, crop only unresolved fields in stage 2. Existing crop/validator functions remain owner. Never call auto-collection.
+Security: verify original receipt/customer/message/media association and actual image hash before packing. Keep existing admin/internal authorization; never accept arbitrary storage keys or expose credentials. Private durable job store required, with atomic unique receipt+stage+revision lease, operation ID, ambiguous-send state. No automatic re-submit on uncertainty. No new cron. Match provider result to metadata and current revision before saving; preserve original evidence and collection status. Batch endTime is batch completion, not per-image execution time; store real save timestamp separately. 
+This PR implements and tests transport protocol only; production job store, endpoint wiring, validation and annotation persistence integration, real paid pilot and UI release remain pending. No images, credentials or live customer records in fixtures.
+
+## Durable store candidate
+Added service-role-only RPC wrappers with private RLS tables, atomic reservation, no duplicate receipt/stage/revision, operation transition, optimistic annotation revision guard and separate batch-completed/save times. SQL not yet applied or executed; validate on ephemeral Postgres before release. No production job submission. Worker wiring, scope-checked image download and existing OCR validator normalization remain pending. Do not invoke network dispatch through SQL to bypass a blocked invocation.
+
+## Worker integration candidate
+Stage-one trusted server module now binds scoped candidate RPC, exact SHA-256 download validation, capped inline packing, durable reservation and result reconciliation with existing v8 OCR validator helpers. No browser route or deployment yet. The worker defaults to 5 originals per pilot; only unresolved items are marked needs_review for stage 2. Batch completion and save time are separate. Actual second-pass crop dispatch and a verified admin AAL2 invocation route remain pending. Previous synthetic DB CI passed; new source requires CI.
+
+## Admin pilot route candidate
+Added explicit POST-only pilot and reconcile route; verifies signed claims AAL2, getUser and live existing admin session RPC before service client use. Exact Pages CORS origin, strict body, max 5 images, no cron, no browser API key, no new collection or automatic dispatch. Never report running without provider operation. Deploy requires full CI and SQL verification; UI wiring and real paid execution remain pending. Google documents inline response metadata; if metadata is missing, fail closed rather than guessing array identity.
+
+## Regression gate
+12 synthetic checks exercise OCR normalization, debit amounts, literal date/time, multi-line memo, non-bill and interest rejection, unreadable vs absent, and targeted crop plans. CI runs them with transport and SQL fixtures. No external AI request or production media access in tests. Stage-two planning is local only; production submission remains unavailable.
