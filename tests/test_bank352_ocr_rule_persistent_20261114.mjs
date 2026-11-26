@@ -64,13 +64,16 @@ assert.equal(buildStoredBillTenFields(multi,fields,5000000).transfer_content,mul
 assert.equal(buildStoredBillTenFields(multi,fields,5000000).recipient_account,multi.recipient_account_visible);
 
 const first={image_type:"successful_transfer_receipt",transfer_success_visible:true,recipient_account_visible:"290118199999"};
-const second={role:"recipient_account",clear:true,visible:"2901181999999",digits:[..."2901181999999"],digit_count:13,trailing_nines:6};
+const second={role:"recipient_account",clear:true,visible:"2901181999999",digits:[..."2901181999999"],reverse_digits:[..."2901181999999"].reverse(),digit_count:13,trailing_nines:6};
 assert.equal(needsAccountDigitRecheck(first),true);
 assert.equal(resolveAccountDigitRecheck(first,second)?.second_visible,"2901181999999");
 assert.equal(first.recipient_account_visible,"290118199999");
-for(const bad of [{...second,clear:false},{...second,role:"sender_account"},{...second,digits:[..."290118199999"]},{...second,digit_count:12},{...second,trailing_nines:5},{...second,visible:"2901181999998"}])assert.equal(resolveAccountDigitRecheck(first,bad),null);
+for(const bad of [{...second,clear:false},{...second,reverse_digits:[]},{...second,reverse_digits:[..."2901181999999"]},{...second,role:"sender_account"},{...second,digits:[..."290118199999"]},{...second,digit_count:12},{...second,trailing_nines:5},{...second,visible:"2901181999998"}])assert.equal(resolveAccountDigitRecheck(first,bad),null);
 assert.equal(needsAccountDigitRecheck({...first,recipient_account_visible:"2901181999999"}),false);
 assert.equal(needsAccountDigitRecheck({...first,image_type:"not_transfer_receipt"}),false);
 assert.equal(ACCOUNT_DIGIT_RECHECK_PROMPT.includes("2901181999999"),false);
 assert(worker.includes("vision.modelRequestCount<BILL_OCR_MAX_MODEL_REQUESTS"));
 assert(worker.includes("account_digit_recheck:accountDigitRecheck"));
+
+assert(worker.includes("maxOutputTokens:2048"));
+assert(worker.includes("account_digit_recheck_state:accountDigitRecheckState"));

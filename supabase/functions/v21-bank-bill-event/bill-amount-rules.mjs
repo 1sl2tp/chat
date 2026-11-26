@@ -254,8 +254,8 @@ function parsePrintedBillTime(source){
 // Focused second vision reading. Do not supply the configured account to the model.
 export const ACCOUNT_DIGIT_RECHECK_PROMPT=[
  "Chỉ đọc vùng SỐ TÀI KHOẢN NGƯỜI NHẬN của giao dịch thành công trên chính ảnh này. Không đọc STK gửi, nội dung, số tiền, mã giao dịch hoặc số dư.",
- "Tìm dòng tài khoản trong khối người nhận. Đọc từng ký tự trái sang phải. Trả mỗi chữ số riêng biệt trong mảng digits, đếm tổng số phần tử và số chữ số 9 liên tiếp ở cuối bằng mắt. Sau đó đọc lại từ phải sang trái. Không thêm số dựa vào độ dài thường gặp, không đoán phần mờ.",
- "Chỉ trả JSON: { \"role\": \"recipient_account\" hoặc \"unknown\", \"visible\": \"chuỗi nguyên văn nhìn thấy\" hoặc null, \"digits\": [\"từng chữ số riêng\"], \"digit_count\": số nguyên, \"trailing_nines\": số nguyên, \"clear\": true hoặc false }. Nếu không rõ từng chữ số hoặc vai trò, clear=false."
+ "Tìm dòng tài khoản trong khối người nhận. Đọc từng ký tự trái sang phải. Trả mỗi chữ số riêng biệt trong mảng digits, đếm tổng số phần tử và số chữ số 9 liên tiếp ở cuối bằng mắt. Sau đó nhìn lại ảnh, đọc độc lập từ phải sang trái, trả riêng mảng reverse_digits theo thứ tự từ phải sang trái; không chỉ đảo mảng đầu bằng suy luận. Đếm theo từng vị trí nhìn thấy, không thêm số dựa vào độ dài thường gặp, không đoán phần mờ.",
+ "Chỉ trả JSON: { \"role\": \"recipient_account\" hoặc \"unknown\", \"visible\": \"chuỗi nguyên văn nhìn thấy\" hoặc null, \"digits\": [\"từng chữ số riêng\"], \"reverse_digits\": [\"từng chữ số từ phải sang trái\"], \"digit_count\": số nguyên, \"trailing_nines\": số nguyên, \"clear\": true hoặc false }. Nếu không rõ từng chữ số hoặc vai trò, clear=false."
 ].join("\n");
 const literalAccount=value=>typeof value==="string"?value.trim().replace(/[ \t]/g,""):"";
 export function needsAccountDigitRecheck(parsed){
@@ -268,9 +268,11 @@ export function resolveAccountDigitRecheck(parsed,second){
  if(!needsAccountDigitRecheck(parsed)||second?.role!=="recipient_account"||second?.clear!==true||
     !Array.isArray(second.digits)||second.digits.length!==13||
     !second.digits.every(x=>typeof x==="string"&&/^\d$/.test(x))||
+    !Array.isArray(second.reverse_digits)||second.reverse_digits.length!==13||
+    !second.reverse_digits.every(x=>typeof x==="string"&&/^\d$/.test(x))||
     second.digit_count!==13||second.trailing_nines!==6)return null;
  const literal=literalAccount(second.visible),digits=second.digits.join("");
- if(literal!==digits||literal!==first+"9"||literal!=="2901181999999")return null;
+ if(second.reverse_digits.join("")!==[...digits].reverse().join("")||literal!==digits||literal!==first+"9"||literal!=="2901181999999")return null;
  return {first_visible:parsed.recipient_account_visible,second_visible:second.visible,digit_count:13,trailing_nines:6,source:"independent_focused_vision"};
 }
 
