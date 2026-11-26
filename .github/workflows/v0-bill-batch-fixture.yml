@@ -1,0 +1,35 @@
+name: Historical Bill Batch fixture
+on:
+  pull_request:
+    paths:
+      - 'docs/sql/v0-bill-batch-store.sql'
+      - 'fixtures/v0-bill-batch/**'
+      - 'supabase/functions/v0-bill-audit-reread/**'
+      - 'tests/test_v0_bill_batch_protocol.mjs'
+      - '.github/workflows/v0-bill-batch-fixture.yml'
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fixture
+          POSTGRES_PASSWORD: fixture_only
+          POSTGRES_DB: fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tests/test_v0_bill_batch_protocol.mjs
+      - name: Synthetic PostgreSQL only
+        env:
+          PGPASSWORD: fixture_only
+        run: psql -h 127.0.0.1 -U fixture -d fixture -v ON_ERROR_STOP=1 -f fixtures/v0-bill-batch/store-test.sql
