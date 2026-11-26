@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import {buildStoredBillTenFields,TEN_FIELD_BILL_GUIDANCE,readV4Fields,sanitizeJournalRecipientFields,validateVisionRead,needsAccountDigitRecheck,needsSmallTextRecheck,recoverSmallText}
+import {buildBillVisionPrompt,REGION_GUIDE} from "../supabase/functions/v21-bank-bill-event/bill-vision-reader.mjs";
+import {SYSTEM_PROMPT,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,TEN_FIELD_BILL_GUIDANCE,readV4Fields,sanitizeJournalRecipientFields,validateVisionRead,needsAccountDigitRecheck,needsSmallTextRecheck,recoverSmallText}
  from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
 
 const parsed={
@@ -60,8 +61,15 @@ for(const part of ["10 NHÃN","Mã tra soát","Mã tham chiếu","null",
   "The OCR instruction needs "+part);
 }
 const edge=fs.readFileSync("supabase/functions/v21-bank-bill-event/index.ts","utf8");
-assert(edge.includes('const prompt=SYSTEM_PROMPT+"\\n\\n"+TEN_FIELD_BILL_GUIDANCE+'),
- "Keep canonical ten-field OCR prompt and append bank-backed execution-date guidance only during retries");
+assert(edge.includes("const prompt=buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,executionDateGuide);"),
+ "Canonical worker must use the new regional reader with the original ten-field schema");
+const standardPrompt=buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE);
+assert(standardPrompt.startsWith(SYSTEM_PROMPT+"\n\n"+TEN_FIELD_BILL_GUIDANCE));
+assert(standardPrompt.includes(REGION_GUIDE));
+assert(standardPrompt.includes(BILL_LITERAL_MEMO_OCR_GUIDANCE));
+const retryMarker="SYNTHETIC_EXECUTION_DATE_RETRY";
+assert(!standardPrompt.includes(retryMarker));
+assert.equal(buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,retryMarker),standardPrompt+"\n\n"+retryMarker);
 assert(edge.includes('const executionDateGuide=retryPrintedDate?['));
 assert(edge.includes("const tenFields=buildStoredBillTenFields(parsed,fields,amount);"));
 assert(edge.includes("bill_fields_v1:tenFields"));

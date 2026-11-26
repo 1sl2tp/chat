@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {buildBillVisionPrompt,REGION_GUIDE} from "../supabase/functions/v21-bank-bill-event/bill-vision-reader.mjs";
 import {SYSTEM_PROMPT,BILL_LITERAL_MEMO_OCR_GUIDANCE,TEN_FIELD_BILL_GUIDANCE,readV4Fields} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
 const source=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/index.ts",import.meta.url),"utf8");
 assert.match(source,/TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields/);
-assert.match(source,/const prompt=SYSTEM_PROMPT\+"\\n\\n"\+TEN_FIELD_BILL_GUIDANCE\+"\\n\\n"\+BILL_LITERAL_MEMO_OCR_GUIDANCE/);
+assert.match(source,/const prompt=buildBillVisionPrompt\(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,executionDateGuide\)/);
+const prompt=buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE);
+assert(prompt.includes(SYSTEM_PROMPT));
+assert(prompt.includes(TEN_FIELD_BILL_GUIDANCE));
+assert(prompt.includes(BILL_LITERAL_MEMO_OCR_GUIDANCE));
+assert(prompt.includes(REGION_GUIDE));
 assert.match(BILL_LITERAL_MEMO_OCR_GUIDANCE,/điện thoại khác/);
 assert.match(BILL_LITERAL_MEMO_OCR_GUIDANCE,/KHÔNG tự bù chữ số/);
 assert.match(BILL_LITERAL_MEMO_OCR_GUIDANCE,/không phải quyền của Gemini/);

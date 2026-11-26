@@ -107,7 +107,7 @@ const index=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/inde
 assert.match(index,/const executionDateGuide=retryPrintedDate\?/);
 assert.match(index,/Ngày thực hiện/);
 assert.match(index,/transfer_date_printed_vn/);
-assert.match(index,/const prompt=SYSTEM_PROMPT/);
+assert.match(index,/const prompt=buildBillVisionPrompt\(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,executionDateGuide\)/);
 assert.match(index,/db\.rpc\("chat_bank_app_collect"/);
 assert.match(index,/if\(recheckBankCredit&&job.status==="review"&&/);
 assert.match(index,/normalized\.transfer_date_printed_raw_vn===literal/);
