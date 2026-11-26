@@ -361,7 +361,9 @@ export function readV4Fields(data,context={}){
  const plain=x=>typeof x==="string"?x.trim():"";
  const name=normalizeBillRecipientName(plain(data?.recipient_name));
  const visible=plain(data?.recipient_account_visible);
- const clean=visible.replace(/[\s.:-]/g,"");
+ // Strip one separated decoration only after 13 literal digits; never infer hidden digits.
+ const decorated=/^\d{13}\s+•$/u.test(visible)?visible.replace(/\s+•$/u,""):visible;
+ const clean=decorated.replace(/[\s.:-]/g,"");
  const fullAccount=/^\d{9,20}$/.test(clean)?clean:null;
  const suffix=plain(data?.recipient_account_last5);
  const suffixFromVisible=clean.match(/(\d{5})$/)?.[1]||null;

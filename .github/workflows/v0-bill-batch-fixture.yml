@@ -5,6 +5,8 @@ on:
       - 'docs/sql/v0-bill-batch-store.sql'
       - 'fixtures/v0-bill-batch/**'
       - 'supabase/functions/v0-bill-audit-reread/**'
+      - 'supabase/functions/v21-bank-bill-event/**'
+      - 'tests/test_bill_account_decoration.mjs'
       - 'tests/test_v0_bill_batch_protocol.mjs'
       - 'tests/test_v0_bill_batch_review.mjs'
       - '.github/workflows/v0-bill-batch-fixture.yml'
@@ -31,6 +33,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: node tests/test_v0_bill_batch_protocol.mjs
       - run: node tests/test_v0_bill_batch_review.mjs
+      - run: node tests/test_bill_account_decoration.mjs
       - name: Synthetic PostgreSQL only
         env:
           PGPASSWORD: fixture_only
