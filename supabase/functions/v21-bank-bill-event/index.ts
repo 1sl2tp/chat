@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
 import {BILL_READER_VERSION,buildBillVisionPrompt,normalizeVisionMemo} from "./bill-vision-reader.mjs";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,sanitizeJournalRecipientFields,SMALL_TEXT_RECHECK_PROMPT,needsSmallTextRecheck,recoverSmallText} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,revalidateAuditedAccountRead,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,sanitizeJournalRecipientFields,SMALL_TEXT_RECHECK_PROMPT,needsSmallTextRecheck,recoverSmallText} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
@@ -390,6 +390,24 @@ Deno.serve(async req=>{
    }
   }catch(_e){console.warn("bank348_stored_date_recovery_unavailable");}
  }
+ // A previously audited literal account repair can leave the old review flag.
+ // Revalidate only this exact failure class, then use the ordinary unique
+ // bank matcher and locked financial RPC. Never re-read pixels or post directly.
+ if(recheckBankCredit&&job.status==="review"&&job.reason==="bill_recipient_account_normalized_pending_bank_review"){
+   try{
+     const {data:r,error:readError}=await db.from("chat_bank_bill_receipts")
+       .select("id,status,reason,raw_read,ledger_id,amount_vnd,receiving_name,receiving_bank,receiving_account,transfer_at_vn,sent_at")
+       .eq("id",job.id).eq("status","review").maybeSingle();
+     const next=!readError&&r?revalidateAuditedAccountRead(r):null;
+     if(next){
+       const {data:updated,error:updateError}=await db.from("chat_bank_bill_receipts")
+         .update({status:"amount_read",reason:"verified_bill_evidence_revalidated",raw_read:next})
+         .eq("id",r.id).eq("status","review").eq("reason",job.reason)
+         .eq("raw_read",JSON.stringify(r.raw_read)).is("ledger_id",null).select("id");
+       if(!updateError&&updated?.length===1)job.status="amount_read";
+     }
+   }catch(_e){console.warn("bill_audited_account_revalidation_unavailable");}
+ }
  // A real Agribank Plus credit may arrive after AI already read this bill.
  // Compare the persisted bill without redownloading the image or calling Gemini.
  if(job.status==="amount_read"){
@@ -451,7 +469,7 @@ Deno.serve(async req=>{
            transfer_content:r.raw_read?.transfer_content,transfer_reference:r.transfer_reference,
            transaction_nature:r.raw_read?.transaction_nature,
            ocr_date_normalization_corrected:r.raw_read?.ocr_date_normalization_corrected===true,
-           requires_bank_memo:evidence.requires_bank_memo===true
+           requires_bank_memo:evidence.requires_bank_memo===true||r.raw_read?.requires_bank_memo===true
          };
          const match=hasReference
            ?previewBillReferenceMatch(candidate,app.data,others.data)

@@ -543,3 +543,48 @@ export function classifyBillRecognition(data,fields,verdict){
   String(fields?.receiving_account||"").length<13?"cropped_recipient":"complete_receipt";
  return {image_layout:layout,recognition_case:code,missing_fields:missing};
 }
+
+/** Revalidate a previously audited literal trailing-bullet account repair.
+ * No inferred digits, clocks, memo, status of received bills, or bank proof.
+ * Return a new OCR projection only; the independent matcher/RPC must collect.
+ */
+export function revalidateAuditedAccountRead(r,nowMs=Date.now()){
+ const s=r?.raw_read,a=s?.account_normalization_audit,f=s?.bill_fields_v1;
+ const expected="2901181999999";
+ if(r?.status!=="review"||r.reason!=="bill_recipient_account_normalized_pending_bank_review"||
+    r.ledger_id!==null||r.receiving_account!==expected||r.receiving_name!=="BUI XUAN TUNG"||
+    r.receiving_bank!=="AGRIBANK"||!Number.isSafeInteger(r.amount_vnd)||r.amount_vnd<=0||
+    s?.rule_version!=="bank_bill_amount_v5_20261110"||s?.transfer_success_visible!==true||
+    s.amount_clear!==true||s.transaction_selection!=="single_detail"||s.transaction_nature!=="transfer"||
+    a?.rule!=="trailing_bullet_v1"||a.source!=="stored_ai_output_no_rescan"||
+    a.normalized!==expected||!/^\d{13}\s+•$/u.test(String(a.original||""))||
+    String(a.original).replace(/\s+•$/u,"")!==expected||
+    s.recipient_account_visible!==a.original||f?.recipient_account!==a.original||
+    s.manual_review_reason!=="bill_recipient_account_missing"||
+    !Array.isArray(s.missing_fields)||s.missing_fields.length!==1||s.missing_fields[0]!=="recipient_account"||
+    s.time_date_conflict!==false||s.clock_text_conflict!==false||s.printed_date_invalid!==false||
+    s.ocr_iso_date_conflict===true||s.date_swap_suspected===true||
+    typeof s.transfer_content!=="string"||s.transfer_content.trim().length<12||f.transfer_content!==s.transfer_content||
+    !s.transfer_date_printed_vn||!s.transfer_time_printed_vn||!Number.isFinite(nowMs))return null;
+ const clock=String(r.transfer_at_vn||"").replace("T"," ").slice(0,16);
+ const date=new Date(nowMs+7*3600000).toISOString().slice(0,10);
+ const sent=Date.parse(String(r.sent_at||""));
+ if(!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(clock)||clock.slice(0,10)!==date||
+    !Number.isFinite(sent)||new Date(sent+7*3600000).toISOString().slice(0,10)!==date||
+    String(s.transaction_datetime_vn||"").replace("T"," ").slice(0,16)!==clock||
+    String(s.transfer_time_printed_vn).slice(0,5)!==clock.slice(11)||
+    s.transfer_date_vn!==date||s.transfer_date_printed_vn!==date.split("-").reverse().join("/"))return null;
+ const e=requiredAutoCollectEvidence({receiving_account:expected,receiving_account_visible:expected,
+    receiving_account_last5:expected.slice(-5),transfer_date_printed_vn:s.transfer_date_printed_vn,
+    transfer_time_printed_vn:s.transfer_time_printed_vn,transfer_at_vn:r.transfer_at_vn});
+ if(!e.complete)return null;
+ const {match_preview,...prior}=s;
+ return {...prior,recipient_account_visible:expected,recipient_account_last5:expected.slice(-5),
+    bill_fields_v1:{...f,recipient_account:expected},required_fields_complete:true,
+    manual_review_reason:null,recognition_case:"complete_receipt",missing_fields:[],
+    requires_bank_memo:true,evidence_revalidation_audit:{
+      source:"audited_literal_account_revalidation",previous_status:r.status,previous_reason:r.reason,
+      previous_visible:a.original,previous_preview:match_preview??null,previous_missing_fields:s.missing_fields,
+      checked_at:new Date(nowMs).toISOString(),financial_posting:"existing_worker_only"
+    }};
+}
