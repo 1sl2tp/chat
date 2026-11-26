@@ -48,3 +48,42 @@ for(const override of [{missing_fields:["recipient_account","transaction_clock"]
 }
 assert.equal(revalidateAuditedAccountRead(row,now+86400000),null);
 console.log("Audited literal account evidence revalidation fixtures passed");
+
+import {prepareVerifiedCorrection} from "../supabase/functions/v21-bank-bill-event/bill-correction-projection.mjs";
+const correctionNow=Date.parse("2026-11-26T10:00:00Z");
+const correctionRow={id:"fixture-receipt",media_asset_id:"fixture-asset",image_sha256:"a".repeat(64),
+ status:"review",ledger_id:null,duplicate_of:null,sent_at:"2026-11-26T09:42:00Z",
+ raw_read:{manual_review_reason:"bill_recipient_account_missing",match_preview:{status:"candidate_unique",notification_id:123}}};
+const reread={source:"original_image_worker",reader_version:"regional-bill-v1",receipt_id:correctionRow.id,
+ asset_id:correctionRow.media_asset_id,image_sha256:correctionRow.image_sha256,model:"fixture-model",
+ completed_at:"2026-11-26T09:59:00Z",parsed:{
+ image_type:"successful_transfer_receipt",image_layout:"app_screenshot",transaction_selection:"single_detail",
+ transaction_nature:"transfer",transfer_success_visible:true,amount_role:"transfer_amount",
+ amount_text:"123,000 VND",amount_vnd:123000,amount_clear:true,
+ recipient_name:"BUI XUAN TUNG",recipient_account_visible:"2901181999999",
+ receiving_bank:"AGRIBANK",sending_bank:"VIETINBANK",
+ transaction_datetime_vn:"2026-11-26 16:41",transfer_date_vn:"2026-11-26",
+ transfer_date_printed_vn:"26/11/2026",transfer_time_printed_vn:"16:41",
+ transfer_content:"NGUYEN VAN MAU Chuyen tien",transfer_reference:"FIXTURE123"}};
+const projection=prepareVerifiedCorrection(correctionRow,reread,correctionNow);
+assert.equal(projection.ok,true,projection.reason);
+assert.equal(projection.patch.status,"amount_read");
+assert.equal(projection.patch.amount_vnd,123000);
+assert.equal(projection.patch.raw_read.requires_bank_memo,true);
+assert.equal(projection.patch.raw_read.match_preview,undefined);
+assert.equal(projection.patch.raw_read.manual_review_reason,null);
+assert.equal(projection.ledger_written,false);
+assert.equal(projection.recheck_required,true);
+assert.equal(correctionRow.raw_read.match_preview.notification_id,123);
+for(const changes of [{status:"received"},{ledger_id:1},{duplicate_of:"other"},{status:"duplicate"},{sent_at:"2026-11-25T09:42:00Z"}]){
+ assert.equal(prepareVerifiedCorrection({...correctionRow,...changes},reread,correctionNow).ok,false);
+}
+for(const changes of [{source:"browser_annotation"},{receipt_id:"other"},{image_sha256:"b".repeat(64)},{completed_at:"2026-11-26T09:50:00Z"}]){
+ assert.equal(prepareVerifiedCorrection(correctionRow,{...reread,...changes},correctionNow).ok,false);
+}
+for(const changes of [{amount_vnd:125000},{recipient_account_visible:"2901181999998"},{recipient_name:"OTHER"},
+ {transfer_time_printed_vn:null},{transfer_date_printed_vn:"25/11/2026"},{transfer_content:"Chuyen tien"},
+ {transfer_content:"NGUYEN VAN MAU Chuyen tien",memo_lines:["OTHER CONTENT"]}]){
+ assert.equal(prepareVerifiedCorrection(correctionRow,{...reread,parsed:{...reread.parsed,...changes}},correctionNow).ok,false,JSON.stringify(changes));
+}
+console.log("Verified correction projection fixtures passed");
