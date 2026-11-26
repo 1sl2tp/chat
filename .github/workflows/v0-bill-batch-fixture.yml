@@ -6,6 +6,7 @@ on:
       - 'fixtures/v0-bill-batch/**'
       - 'supabase/functions/v0-bill-audit-reread/**'
       - 'tests/test_v0_bill_batch_protocol.mjs'
+      - 'tests/test_v0_bill_batch_review.mjs'
       - '.github/workflows/v0-bill-batch-fixture.yml'
 permissions:
   contents: read
@@ -29,6 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: node tests/test_v0_bill_batch_protocol.mjs
+      - run: node tests/test_v0_bill_batch_review.mjs
       - name: Synthetic PostgreSQL only
         env:
           PGPASSWORD: fixture_only

@@ -11,3 +11,6 @@ Stage-one trusted server module now binds scoped candidate RPC, exact SHA-256 do
 
 ## Admin pilot route candidate
 Added explicit POST-only pilot and reconcile route; verifies signed claims AAL2, getUser and live existing admin session RPC before service client use. Exact Pages CORS origin, strict body, max 5 images, no cron, no browser API key, no new collection or automatic dispatch. Never report running without provider operation. Deploy requires full CI and SQL verification; UI wiring and real paid execution remain pending. Google documents inline response metadata; if metadata is missing, fail closed rather than guessing array identity.
+
+## Regression gate
+12 synthetic checks exercise OCR normalization, debit amounts, literal date/time, multi-line memo, non-bill and interest rejection, unreadable vs absent, and targeted crop plans. CI runs them with transport and SQL fixtures. No external AI request or production media access in tests. Stage-two planning is local only; production submission remains unavailable.

@@ -14,6 +14,7 @@ export function normalizeResult(raw){
  const data=sanitizeJournalRecipientFields(raw);
  if(data?.transfer_success_visible!==true||data?.transaction_selection!=="single_detail")return {corrections:{},fields:{},state:"needs_review"};
  const f=readV4Fields(data),verdict=validateVisionRead(data);
+ if(verdict.status==="non_bill"||!["successful_transfer_receipt","bank_credit_transaction","bank_credit_notification"].includes(data.image_type)||!["transfer","incoming_transfer"].includes(data.transaction_nature))return {corrections:{},fields:{},state:"needs_review"};
  const date=typeof f.transfer_date_vn==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(f.transfer_date_vn)&&f.transfer_date_printed_vn&&!f.time_date_conflict?f.transfer_date_vn.split("-").reverse().join("/"):null;
  const clock=typeof f.transfer_time_printed_vn==="string"&&/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/.test(f.transfer_time_printed_vn)&&!f.time_date_conflict?f.transfer_time_printed_vn:null;
  const values={amount_vnd:Number.isSafeInteger(verdict.amount_vnd)&&verdict.amount_vnd>0&&verdict.amount_vnd<1e12?String(verdict.amount_vnd):null,date_raw:date,clock,account_raw:f.receiving_account,recipient:f.receiving_name,memo:f.transfer_content?.replace(/\s+/g," ").trim(),reference:f.transfer_reference,trace:typeof data.trace_code==="string"&&/^[A-Za-z0-9./_-]{3,64}$/.test(data.trace_code)?data.trace_code:null,sending_bank:f.sending_bank,receiving_bank:f.receiving_bank};
