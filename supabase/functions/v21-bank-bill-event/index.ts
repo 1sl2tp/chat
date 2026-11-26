@@ -1,13 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
 import {recoverStoredNoClockBankCredit} from "./bill-no-clock-worker.mjs";
 import {sendMissingClockCustomerReconciliation} from "./bill-no-clock-customer-notice.mjs";
-import {requestParsedBillGemini} from "./bill-gemini-failover.mjs";
+import {requestParsedBillGemini,requestBillGemini,parseBillGeminiResponse,BILL_OCR_FALLBACK_MODEL,BILL_OCR_MAX_MODEL_REQUESTS} from "./bill-gemini-failover.mjs";
 import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
 import {isRetryableBillScanReason,describeBillDecision} from "./bill-decision-policy.mjs";
 
@@ -600,6 +600,7 @@ Deno.serve(async req=>{
    const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
    let usedModel=model;
    let parsed:any;
+   let accountDigitRecheck:any=null;
    try{
      // BANK-303: HTTP 200 may carry truncated or malformed AI JSON.
      // Validate the ENTIRE candidate and allow at most one alternate model
@@ -612,6 +613,18 @@ Deno.serve(async req=>{
      });
      usedModel=vision.usedModel;
      parsed=vision.parsed;
+     // One focused read, same original pixels and total request/time ceiling.
+     // No financial action uses this separate display-only evidence.
+     if(needsAccountDigitRecheck(parsed)&&vision.modelRequestCount<BILL_OCR_MAX_MODEL_REQUESTS&&!ctl.signal.aborted){
+       try{
+         const focused=await requestBillGemini({key:geminiKey,model:BILL_OCR_FALLBACK_MODEL,
+           payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
+             generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:512}},
+           signal:ctl.signal});
+         const second=await parseBillGeminiResponse(focused.response,{signal:ctl.signal});
+         accountDigitRecheck=resolveAccountDigitRecheck(parsed,second);
+       }catch{ /* retain original OCR on timeout, quota, invalid JSON or ambiguity */ }
+     }
    }finally{clearTimeout(timeout);}
    const fields=readV4Fields(parsed,{sentAt:job.sent_at});
    const verdict=validateVisionRead(parsed);
@@ -698,6 +711,7 @@ Deno.serve(async req=>{
       recipient_account_last5:fields.receiving_account_last5,
       sender_name:fields.sender_name,sending_bank:fields.sending_bank,
       recipient_account_visible:fields.receiving_account_visible,
+      account_digit_recheck:accountDigitRecheck,
       transaction_selection:fields.transaction_selection,
       transaction_nature:fields.transaction_nature,
       transaction_datetime_vn:fields.transfer_at_vn,

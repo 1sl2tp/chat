@@ -63,3 +63,5 @@ Ví dụ đã xác minh từ ảnh: bill VPBank chuyển 730.000 ngày 12/11/202
 
 ## Bài học bổ sung — ô nội dung nhiều dòng và STK lặp số 9
 Ảnh giao dịch có thể hiển thị tên người trong chính ô Nội dung, lời nhắn ở dòng dưới; không bỏ dòng đầu và không chuyển tên sang trường khác. Kiểm đủ các chữ số lặp ở vùng nhận, đọc xuôi/ngược, không tự thêm số thiếu từ cấu hình. Kiểm thử text-only bảo toàn xuống dòng và giá trị STK gốc; chưa đánh giá lại ảnh thật hoặc thay đổi matcher, thông báo, sổ. Giữ nguyên RULE_VERSION tương thích.
+
+- Repeated digit OCR: when first literal read is the known 12-digit prefix of the configured account, do one independent focused vision request (alternate model, same total 30s/3-request budget), no expected account in prompt. Validate digit array, literal, length, trailing count, beneficiary role and clarity. Keep original receipt/matcher evidence unchanged; save separate display-only account_digit_recheck. No retroactive financial writes or automatic historic rescans. Pixel accuracy is not established by synthetic tests.

@@ -250,6 +250,30 @@ function parsePrintedBillTime(source){
  * Normalize V4 supplemental fields without ever guessing obscured characters.
  * Time is wall-clock Vietnam time, never parsed as the server timezone.
  */
+
+// Focused second vision reading. Do not supply the configured account to the model.
+export const ACCOUNT_DIGIT_RECHECK_PROMPT=[
+ "Chỉ đọc vùng SỐ TÀI KHOẢN NGƯỜI NHẬN của giao dịch thành công trên chính ảnh này. Không đọc STK gửi, nội dung, số tiền, mã giao dịch hoặc số dư.",
+ "Tìm dòng tài khoản trong khối người nhận. Đọc từng ký tự trái sang phải. Trả mỗi chữ số riêng biệt trong mảng digits, đếm tổng số phần tử và số chữ số 9 liên tiếp ở cuối bằng mắt. Sau đó đọc lại từ phải sang trái. Không thêm số dựa vào độ dài thường gặp, không đoán phần mờ.",
+ "Chỉ trả JSON: { \"role\": \"recipient_account\" hoặc \"unknown\", \"visible\": \"chuỗi nguyên văn nhìn thấy\" hoặc null, \"digits\": [\"từng chữ số riêng\"], \"digit_count\": số nguyên, \"trailing_nines\": số nguyên, \"clear\": true hoặc false }. Nếu không rõ từng chữ số hoặc vai trò, clear=false."
+].join("\n");
+const literalAccount=value=>typeof value==="string"?value.trim().replace(/[ \t]/g,""):"";
+export function needsAccountDigitRecheck(parsed){
+ const first=literalAccount(parsed?.recipient_account_visible);
+ return ["successful_transfer_receipt","bank_credit_transaction","bank_credit_notification"].includes(parsed?.image_type)
+  && parsed?.transfer_success_visible===true && /^29011819{5}$/.test(first);
+}
+export function resolveAccountDigitRecheck(parsed,second){
+ const first=literalAccount(parsed?.recipient_account_visible);
+ if(!needsAccountDigitRecheck(parsed)||second?.role!=="recipient_account"||second?.clear!==true||
+    !Array.isArray(second.digits)||second.digits.length!==13||
+    !second.digits.every(x=>typeof x==="string"&&/^\d$/.test(x))||
+    second.digit_count!==13||second.trailing_nines!==6)return null;
+ const literal=literalAccount(second.visible),digits=second.digits.join("");
+ if(literal!==digits||literal!==first+"9"||literal!=="2901181999999")return null;
+ return {first_visible:parsed.recipient_account_visible,second_visible:second.visible,digit_count:13,trailing_nines:6,source:"independent_focused_vision"};
+}
+
 export function readV4Fields(data,context={}){
  const plain=x=>typeof x==="string"?x.trim():"";
  const name=normalizeBillRecipientName(plain(data?.recipient_name));
