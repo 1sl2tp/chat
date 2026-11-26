@@ -1,0 +1,3 @@
+# Bill recipient account decoration
+
+A model may return exactly 13 digits followed by whitespace and a single decorative bullet (•). Preserve the original visible transcription; remove only the separated trailing bullet in the normalized account. Do not strip masking, infer missing digits, or relax independent Agribank, date/time, duplicate or ledger gates. Live v21-bank-bill-event and historical reread copies are both covered by a synthetic test. No customer case data or ledger writes in this change. Backend-only: no frontend build version change. Deploy only after exact commit CI passes and active Edge source matches the reviewed baseline; verify deployed version separately.
