@@ -8,3 +8,6 @@ Added service-role-only RPC wrappers with private RLS tables, atomic reservation
 
 ## Worker integration candidate
 Stage-one trusted server module now binds scoped candidate RPC, exact SHA-256 download validation, capped inline packing, durable reservation and result reconciliation with existing v8 OCR validator helpers. No browser route or deployment yet. The worker defaults to 5 originals per pilot; only unresolved items are marked needs_review for stage 2. Batch completion and save time are separate. Actual second-pass crop dispatch and a verified admin AAL2 invocation route remain pending. Previous synthetic DB CI passed; new source requires CI.
+
+## Admin pilot route candidate
+Added explicit POST-only pilot and reconcile route; verifies signed claims AAL2, getUser and live existing admin session RPC before service client use. Exact Pages CORS origin, strict body, max 5 images, no cron, no browser API key, no new collection or automatic dispatch. Never report running without provider operation. Deploy requires full CI and SQL verification; UI wiring and real paid execution remain pending. Google documents inline response metadata; if metadata is missing, fail closed rather than guessing array identity.
