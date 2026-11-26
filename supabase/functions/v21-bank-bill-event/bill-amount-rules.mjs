@@ -61,6 +61,7 @@ export const SENDER_DEBIT_NOTICE_GUIDANCE=[
 ].join("\n");
 export const TEN_FIELD_BILL_GUIDANCE=[
  SENDER_DEBIT_NOTICE_GUIDANCE,
+ "NHẬT KÝ GIAO DỊCH: Tài khoản thanh toán là STK bên gửi. Số tiền GD là số tiền giao dịch; số dư cuối bỏ qua. Nội dung giao dịch là MỘT vùng độc lập, gồm toàn bộ chữ, số, STK và mã nằm trong vùng đó; KHÔNG đưa bất kỳ chữ/số nào từ vùng này vào recipient_name, recipient_account_visible, recipient_account_last5 hoặc receiving_bank. Chỉ đọc các trường người nhận khi có nhãn riêng ngoài nội dung, ví dụ DEN hoặc Người thụ hưởng. Nếu không có nhãn riêng thì null. BIDV SMB-TkThe trong nội dung là mẫu nhật ký memo-only: giữ nguyên memo, các trường nhận null. Giờ giao dịch lấy từ nhãn Thời gian giao dịch, không dùng giờ thông báo ở trên.",
  "KIỂM TRA ĐỦ 10 NHÃN CỦA MỘT BILL: ngân hàng gửi; ngân hàng nhận; tên tài khoản nhận; số tài khoản nhận; số tiền; ngày giao dịch; giờ giao dịch; nội dung chuyển khoản; mã tham chiếu; mã tra soát.",
  "ĐỌC KỸ vùng Người nhận/Người thụ hưởng với tên và STK; ngày và giờ là HAI trường độc lập: bill chỉ in ngày thì giờ=null, không mượn đồng hồ trên điện thoại.",
  "Mã tra soát là mã RIÊNG, không lấy mã tham chiếu để điền khi thiếu. Nếu in thêm Hình thức/Phương thức chuyển khoản, ghi transfer_method; không suy đoán.",
@@ -69,7 +70,18 @@ export const TEN_FIELD_BILL_GUIDANCE=[
  "Chỉ đọc và lưu khi ảnh mới tới; các lần xem sau dùng dữ liệu lưu, KHÔNG yêu cầu đọc ảnh lại.",
  BILL_LITERAL_MEMO_OCR_GUIDANCE
 ].join("\n");
+// Known sender-side BIDV journal memo envelope: no independent recipient block.
+export function sanitizeJournalRecipientFields(data){
+ if(!data||typeof data!=="object")return data;
+ const sender=String(data.sending_bank||"").trim().toUpperCase();
+ const journal=sender==="BIDV"&&data.amount_role==="sender_debit"&&
+  /^SMB-TkThe\s*:/i.test(String(data.transfer_content||"").trim());
+ if(!journal)return data;
+ return {...data,recipient_name:null,recipient_name_printed:null,
+  recipient_account_visible:null,recipient_account_last5:null,receiving_bank:null};
+}
 export function buildStoredBillTenFields(data,fields,amountVnd){
+ data=sanitizeJournalRecipientFields(data);
  const text=x=>typeof x==="string"&&x.trim()?x.trim():null;
  const trace=text(data?.trace_code);
  const traceCode=trace&&/^[A-Za-z0-9./_-]{3,64}$/.test(trace)?trace:null;
@@ -120,6 +132,7 @@ export function parseAmountText(value){
  return sign*number;
 }
 export function validateVisionRead(data){
+ data=sanitizeJournalRecipientFields(data);
  const type=String(data?.image_type||"");
  if(type==="not_transfer_receipt")return{status:"non_bill",reason:"not_bank_transfer_or_credit_record",amount_vnd:null};
  if(type==="multiple_transactions")return{status:"review",reason:"multiple_transactions_ambiguous",amount_vnd:null};
@@ -132,7 +145,14 @@ export function validateVisionRead(data){
  const role=String(data?.amount_role||"");
  if(!VALID_ROLES.has(role))return{status:"review",reason:"amount_role_unknown",amount_vnd:null};
  if(type==="successful_transfer_receipt"&&role==="incoming_credit")return{status:"review",reason:"amount_direction_conflict",amount_vnd:null};
- if(type!=="successful_transfer_receipt"&&role!=="incoming_credit")return{status:"review",reason:"amount_direction_conflict",amount_vnd:null};
+ if(type!=="successful_transfer_receipt"&&role!=="incoming_credit"){
+   // Recognize an explicit debit amount for this memo-only journal, review only.
+   const journal=String(data?.sending_bank||"").trim().toUpperCase()==="BIDV"&&role==="sender_debit"&&/^SMB-TkThe\s*:/i.test(String(data?.transfer_content||"").trim());
+   const signed=parseAmountText(data?.amount_text);
+   if(journal&&type==="bank_credit_notification"&&signed!==null&&signed<0&&data.amount_vnd===Math.abs(signed))
+     return{status:"review",reason:"bill_recipient_account_missing",amount_vnd:Math.abs(signed)};
+   return{status:"review",reason:"amount_direction_conflict",amount_vnd:null};
+ }
  const signed=parseAmountText(data?.amount_text);
  if(signed===null)return{status:"review",reason:"amount_text_unreadable",amount_vnd:null};
  if(signed<0&&role!=="sender_debit")return{status:"review",reason:"negative_amount_wrong_role",amount_vnd:null};
@@ -265,6 +285,7 @@ export const ACCOUNT_DIGIT_RECHECK_PROMPT=[
 ].join("\n");
 const literalAccount=value=>typeof value==="string"?value.trim().replace(/[ \t]/g,""):"";
 export function needsAccountDigitRecheck(parsed){
+ parsed=sanitizeJournalRecipientFields(parsed);
  const first=literalAccount(parsed?.recipient_account_visible);
  return ["successful_transfer_receipt","bank_credit_transaction","bank_credit_notification"].includes(parsed?.image_type)
   && parsed?.transfer_success_visible===true && /^29011819{5}$/.test(first);
@@ -298,6 +319,7 @@ export function parseSenderDebitNotice(data){
 }
 
 export function readV4Fields(data,context={}){
+ data=sanitizeJournalRecipientFields(data);
  const plain=x=>typeof x==="string"?x.trim():"";
  const name=normalizeBillRecipientName(plain(data?.recipient_name));
  const visible=plain(data?.recipient_account_visible);

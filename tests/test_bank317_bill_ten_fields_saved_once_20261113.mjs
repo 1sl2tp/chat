@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import {buildStoredBillTenFields,TEN_FIELD_BILL_GUIDANCE,readV4Fields}
+import {buildStoredBillTenFields,TEN_FIELD_BILL_GUIDANCE,readV4Fields,sanitizeJournalRecipientFields,validateVisionRead,needsAccountDigitRecheck}
  from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
 
 const parsed={
@@ -120,3 +120,14 @@ const css=fs.readFileSync("bank-report-dashboard.css","utf8");
 assert(css.includes("body > [data-bank-review-modal]:not([hidden])"));
 assert(css.includes("z-index:2147483000"));
 console.log("BANK-317: one read, ten persisted fields, no guesses, old OCR reuse and portal over Contacts PASS");
+
+// BANK-354 synthetic journal: memo cannot populate any beneficiary field.
+const journal={image_type:"bank_credit_notification",transaction_nature:"transfer",transaction_selection:"single_detail",transfer_success_visible:true,amount_role:"sender_debit",amount_clear:true,amount_text:"-123,000 VND",amount_vnd:123000,sending_bank:"BIDV",receiving_bank:"AGRIBANK",recipient_name:"KHACH MAU",recipient_account_visible:"1234567890123",recipient_account_last5:"90123",transfer_content:"SMB-TkThe:1234567890123, tai MAU. KHACH MAU Chuyen tien"};
+const jf=readV4Fields(journal);
+assert.equal(jf.receiving_name,null);assert.equal(jf.receiving_account,null);assert.equal(jf.receiving_account_last5,null);assert.equal(jf.receiving_bank,null);assert.equal(jf.transfer_content,journal.transfer_content);
+assert.equal(buildStoredBillTenFields(journal,jf,123000).recipient_name,null);
+assert.equal(buildStoredBillTenFields(journal,jf,123000).recipient_account,null);
+assert.equal(needsAccountDigitRecheck({...journal,recipient_account_visible:"290118199999"}),false);
+assert.deepEqual(validateVisionRead(journal),{status:"review",reason:"bill_recipient_account_missing",amount_vnd:123000});
+assert.equal(validateVisionRead({...journal,amount_vnd:123001}).amount_vnd,null);
+assert.equal(sanitizeJournalRecipientFields({...journal,transfer_content:"KHACH MAU chuyen tien"}).recipient_name,"KHACH MAU");

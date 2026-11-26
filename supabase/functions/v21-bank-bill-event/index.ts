@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,sanitizeJournalRecipientFields} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
@@ -613,7 +613,7 @@ Deno.serve(async req=>{
        signal:ctl.signal
      });
      usedModel=vision.usedModel;
-     parsed=vision.parsed;
+     parsed=sanitizeJournalRecipientFields(vision.parsed);
      // One focused read, same original pixels and total request/time ceiling.
      // No financial action uses this separate display-only evidence.
      if(needsAccountDigitRecheck(parsed))accountDigitRecheckState='budget_exhausted';
