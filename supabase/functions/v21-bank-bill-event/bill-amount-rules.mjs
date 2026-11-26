@@ -557,8 +557,8 @@ export function revalidateAuditedAccountRead(r,nowMs=Date.now()){
     s?.rule_version!=="bank_bill_amount_v5_20261110"||s?.transfer_success_visible!==true||
     s.amount_clear!==true||s.transaction_selection!=="single_detail"||s.transaction_nature!=="transfer"||
     a?.rule!=="trailing_bullet_v1"||a.source!=="stored_ai_output_no_rescan"||
-    a.normalized!==expected||!/^\\d{13}\\s+•$/u.test(String(a.original||""))||
-    String(a.original).replace(/\\s+•$/u,"")!==expected||
+    a.normalized!==expected||!/^\d{13}\s+•$/u.test(String(a.original||""))||
+    String(a.original).replace(/\s+•$/u,"")!==expected||
     s.recipient_account_visible!==a.original||f?.recipient_account!==a.original||
     s.manual_review_reason!=="bill_recipient_account_missing"||
     !Array.isArray(s.missing_fields)||s.missing_fields.length!==1||s.missing_fields[0]!=="recipient_account"||
@@ -569,7 +569,7 @@ export function revalidateAuditedAccountRead(r,nowMs=Date.now()){
  const clock=String(r.transfer_at_vn||"").replace("T"," ").slice(0,16);
  const date=new Date(nowMs+7*3600000).toISOString().slice(0,10);
  const sent=Date.parse(String(r.sent_at||""));
- if(!/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$/.test(clock)||clock.slice(0,10)!==date||
+ if(!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(clock)||clock.slice(0,10)!==date||
     !Number.isFinite(sent)||new Date(sent+7*3600000).toISOString().slice(0,10)!==date||
     String(s.transaction_datetime_vn||"").replace("T"," ").slice(0,16)!==clock||
     String(s.transfer_time_printed_vn).slice(0,5)!==clock.slice(11)||
