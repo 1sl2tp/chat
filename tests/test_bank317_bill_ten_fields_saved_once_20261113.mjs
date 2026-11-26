@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import {buildStoredBillTenFields,TEN_FIELD_BILL_GUIDANCE,readV4Fields,sanitizeJournalRecipientFields,validateVisionRead,needsAccountDigitRecheck}
+import {buildStoredBillTenFields,TEN_FIELD_BILL_GUIDANCE,readV4Fields,sanitizeJournalRecipientFields,validateVisionRead,needsAccountDigitRecheck,needsSmallTextRecheck,recoverSmallText}
  from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
 
 const parsed={
@@ -131,3 +131,16 @@ assert.equal(needsAccountDigitRecheck({...journal,recipient_account_visible:"290
 assert.deepEqual(validateVisionRead(journal),{status:"review",reason:"bill_recipient_account_missing",amount_vnd:123000});
 assert.equal(validateVisionRead({...journal,amount_vnd:123001}).amount_vnd,null);
 assert.equal(sanitizeJournalRecipientFields({...journal,transfer_content:"KHACH MAU chuyen tien"}).recipient_name,"KHACH MAU");
+
+// BANK-359 synthetic VCB layout: clock first, weekday, date; two-line memo.
+const vcb={image_type:"successful_transfer_receipt",transfer_success_visible:true,transaction_selection:"single_detail",transaction_nature:"transfer",amount_role:"transfer_amount",amount_vnd:123000,amount_text:"123,000",amount_clear:true,transaction_datetime_vn:"2026-10-20 06:54"};
+const vcbSecond={transaction_line:"06:54 Thứ Ba 20/10/2026",time_clear:true,memo_lines:["KHACH MAU","chuyen tien"],memo_clear:true};
+assert.equal(needsSmallTextRecheck(vcb),true);
+const vcbRead=recoverSmallText(vcb,vcbSecond),vf=readV4Fields(vcbRead);
+assert.equal(vf.transfer_at_vn,"2026-10-20 06:54");assert.equal(vf.transfer_time_printed_vn,"06:54");assert.equal(vf.transfer_content,"KHACH MAU chuyen tien");
+assert.equal(readV4Fields({...vcb,transfer_date_printed_vn:vcbSecond.transaction_line}).transfer_at_vn,"2026-10-20 06:54");
+assert.equal(recoverSmallText(vcb,{...vcbSecond,transaction_line:"06:55 Thứ Ba 20/10/2026"}).transfer_date_printed_vn,undefined);
+assert.equal(recoverSmallText(vcb,{...vcbSecond,transaction_line:"06:54 Thứ Tư 20/10/2026"}).transfer_date_printed_vn,undefined);
+assert.equal(recoverSmallText(vcb,{...vcbSecond,memo_clear:false}).transfer_content,undefined);
+assert.equal(recoverSmallText({...vcb,transfer_content:"ORIGINAL"},vcbSecond).transfer_content,"ORIGINAL");
+assert.equal(recoverSmallText({...vcb,image_type:"not_transfer_receipt"},vcbSecond).transfer_content,undefined);

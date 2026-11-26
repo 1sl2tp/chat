@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,sanitizeJournalRecipientFields} from "./bill-amount-rules.mjs";
+import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,sanitizeJournalRecipientFields,SMALL_TEXT_RECHECK_PROMPT,needsSmallTextRecheck,recoverSmallText} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
 import {previewBillAppMatch,previewBillReferenceMatch} from "./bill-app-preview.mjs";
 import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
@@ -602,6 +602,7 @@ Deno.serve(async req=>{
    let parsed:any;
    let accountDigitRecheck:any=null;
    let accountDigitRecheckState='not_required';
+   let smallTextRecheckState='not_required';
    try{
      // BANK-303: HTTP 200 may carry truncated or malformed AI JSON.
      // Validate the ENTIRE candidate and allow at most one alternate model
@@ -613,12 +614,14 @@ Deno.serve(async req=>{
        signal:ctl.signal
      });
      usedModel=vision.usedModel;
+     let modelRequests=vision.modelRequestCount;
      parsed=sanitizeJournalRecipientFields(vision.parsed);
      // One focused read, same original pixels and total request/time ceiling.
      // No financial action uses this separate display-only evidence.
      if(needsAccountDigitRecheck(parsed))accountDigitRecheckState='budget_exhausted';
      if(needsAccountDigitRecheck(parsed)&&vision.modelRequestCount<BILL_OCR_MAX_MODEL_REQUESTS&&!ctl.signal.aborted){
        try{
+         modelRequests++;
          const focused=await requestBillGemini({key:geminiKey,model:BILL_OCR_FALLBACK_MODEL,
            payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
              generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:2048}},
@@ -627,6 +630,19 @@ Deno.serve(async req=>{
          accountDigitRecheck=resolveAccountDigitRecheck(parsed,second);
          accountDigitRecheckState=accountDigitRecheck?"confirmed":"digit_evidence_disagrees";
        }catch(e){ const msg=String((e as Error)?.message||"");accountDigitRecheckState=ctl.signal.aborted?"timeout":msg==="gemini_invalid_json"?"invalid_json":/^gemini_http_\d{3}$/.test(msg)?msg:"request_failed"; }
+     }
+     if(needsSmallTextRecheck(parsed))smallTextRecheckState='budget_exhausted';
+     if(needsSmallTextRecheck(parsed)&&modelRequests<BILL_OCR_MAX_MODEL_REQUESTS&&!ctl.signal.aborted){
+       try{
+         modelRequests++;
+         const focused=await requestBillGemini({key:geminiKey,model:BILL_OCR_FALLBACK_MODEL,
+           payload:{contents:[{role:"user",parts:[{text:SMALL_TEXT_RECHECK_PROMPT},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
+             generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1024}},signal:ctl.signal});
+         const second=await parseBillGeminiResponse(focused.response,{signal:ctl.signal});
+         const recovered=recoverSmallText(parsed,second);
+         smallTextRecheckState=recovered.transfer_content!==parsed.transfer_content||recovered.transfer_date_printed_vn!==parsed.transfer_date_printed_vn||recovered.transfer_time_printed_vn!==parsed.transfer_time_printed_vn?'recovered':'no_clear_evidence';
+         parsed=recovered;
+       }catch(_e){smallTextRecheckState=ctl.signal.aborted?'timeout':'request_failed';}
      }
    }finally{clearTimeout(timeout);}
    const fields=readV4Fields(parsed,{sentAt:job.sent_at});
@@ -716,6 +732,7 @@ Deno.serve(async req=>{
       recipient_account_visible:fields.receiving_account_visible,
       account_digit_recheck:accountDigitRecheck,
       account_digit_recheck_state:accountDigitRecheckState,
+      small_text_recheck_state:smallTextRecheckState,
       transaction_selection:fields.transaction_selection,
       transaction_nature:fields.transaction_nature,
       transaction_datetime_vn:fields.transfer_at_vn,

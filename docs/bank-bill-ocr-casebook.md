@@ -72,3 +72,6 @@ Ví dụ đã xác minh từ ảnh: bill VPBank chuyển 730.000 ngày 12/11/202
 
 ## BANK-354 — nhật ký giao dịch và nội dung độc lập
 BIDV sender-debit SMB-TkThe memo envelope: STK thanh toán thuộc bên gửi; không lấy tên, STK hoặc NH nhận từ memo. Chỉ riêng nhãn người nhận bên ngoài memo mới là chứng cứ trường nhận. Preserve full memo; no inferred recipient or focused digit recheck. Explicit negative amount agreeing with model amount may be displayed in review even when old model misclassifies as credit; no collection authorization, no ledger writes from tests. Other banks retain existing explicit beneficiary rules; new prompt covers all journal layouts. Synthetic regression in existing BANK-317 CI.
+
+## BANK-359 — VCB small transaction text
+Real photo lesson: clock + weekday + date in a faint unlabelled line below amount; right-column memo spans two lines before fee/method. Separate from phone status clock. Bounded independent focused vision for missing fields using original pixels and existing maximum three requests / 30s. Accept literal calendar/clock only when consistent; memo only if clear, keep existing nonempty memo. No historical rescan through collection worker; no automatic authorization change. Synthetic regressions, image-level acceptance still required.

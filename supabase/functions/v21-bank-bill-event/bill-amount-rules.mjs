@@ -15,6 +15,7 @@ export const STRUCTURED_BILL_VISION_RULES=[
  "VÙNG 1 — SỐ TIỀN: Đọc số tiền CHUYỂN/NHẬN của đúng giao dịch, không lấy số dư, phí hoặc số tài khoản. Đọc lại từng chữ số và dấu phân cách. Số tiền rõ nhưng thiếu các trường khác vẫn là bill đọc được; không kết luận đã thu.",
  "VÙNG 2 — ĐÍCH NHẬN: Tìm nhãn Người nhận, Người thụ hưởng, Tài khoản đích, Tài khoản nhận, Đến tài khoản hoặc Beneficiary; gắn tên, số tài khoản và ngân hàng vào đúng người nhận, không lấy người gửi hay logo ngân hàng gửi. Chép nguyên văn từng chữ số STK, nếu mờ thì null hoặc phần nhìn thấy; không tự bù số 9 hay điền STK cấu hình vào kết quả OCR.",
  "VÙNG 3 — NGÀY VÀ GIỜ: Tìm Ngày giao dịch, Thời gian, Thực hiện lúc, Ngày thực hiện, Transaction time trong vùng giao dịch. Đọc ngày DD/MM/YYYY theo vị trí, không đảo ngày-tháng. Giờ/phút là trường tùy chọn: thiếu giờ vẫn giữ ngày và amount, transaction_datetime_vn=null. Không mượn giờ đồng hồ điện thoại, ảnh chụp hay Chat; không tự thêm giây.",
+ "VÙNG 3B — VCB DIGIBANK VÀ BỐ CỤC TƯƠNG TỰ: Ngay dưới số tiền lớn có thể có dòng nhỏ màu nhạt không nhãn, theo thứ tự GIỜ + THỨ + NGÀY. Đọc riêng dòng đó, không lấy giờ trên thanh trạng thái. Tìm ô Nội dung ở cột phải, đọc cả tên và lời nhắn xuống dòng đến trước nhãn Phí chuyển tiền/Hình thức chuyển. Logo VCB Digibank là ngân hàng gửi, không phải ngân hàng nhận. Khi thiếu ngày/giờ hoặc nội dung, phải nhìn lại vùng chữ nhỏ trong màn hình bên trong ảnh.",
  "VÙNG 4 — NỘI DUNG: Chép nguyên văn lời nhắn chuyển khoản và mã giao dịch nếu hiện rõ. Nội dung giống nhau hoặc thiếu nội dung không tự động có nghĩa là trùng giao dịch. Các tiền tố kỹ thuật IBFT, MCC, QR là thông tin phía ngân hàng nhận; AI không tự thêm, bỏ hoặc sửa chữ in trên ảnh.",
  "VÙNG 5 — KIỂM TRA CHÉO: Đảm bảo tất cả trường thuộc MỘT giao dịch. Nếu ảnh chụp điện thoại khác, chỉ đọc phần bill trong màn hình. Trường nào không chắc => null và uncertainty ghi đúng vùng; không vì một trường mờ mà làm mất số tiền đã đọc chắc chắn.",
  "VÙNG 6 — KẾT QUẢ: Trả JSON đúng schema, phân biệt bill_hop_le_ve_hinh_anh với da_nhan_tien. AI chỉ trích xuất, không tự ghi thu. Hệ thống đối soát với thông báo Agribank độc lập theo số tiền, tài khoản đích, ngày giờ có dung sai có kiểm soát, tên/ngữ nghĩa nội dung và tính duy nhất. Lệch khoảng 1 phút có thể hợp lệ khi có chứng cứ độc lập; thiếu giờ phải có bằng chứng thay thế đủ mạnh. Một thông báo chỉ được ghi thu một lần bởi RPC tài chính.",
@@ -181,7 +182,15 @@ function verifiedBillDate(year,month,day){
 function splitPrintedBillDateClock(source){
  const s=String(source||"").normalize("NFKC").trim();
  const suffix=/(?:\s+lúc\s+|,\s*|\s+)((?:[01]?\d|2[0-3])(?::[0-5]\d(?::[0-5]\d)?|\s*(?:h|giờ)\s*[0-5]?\d(?:\s*phút)?))$/iu.exec(s);
- if(!suffix)return{dateText:s,inlineClock:null,inlineClockText:null};
+ if(!suffix){
+   // Explicit leading clock on the same receipt line, including VCB weekday.
+   const prefix=/^((?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?)\s*(?:[,;|•\-–]\s*|\s+)(.+)$/u.exec(s);
+   if(prefix&&/\b20\d{2}$/.test(prefix[2])){
+     const clock=parsePrintedBillClock(prefix[1]);
+     if(clock)return{dateText:prefix[2].trim(),inlineClock:clock,inlineClockText:prefix[1]};
+   }
+   return{dateText:s,inlineClock:null,inlineClockText:null};
+ }
  const clock=parsePrintedBillClock(suffix[1]);
  return clock?{dateText:s.slice(0,suffix.index).trim(),inlineClock:clock,
    inlineClockText:suffix[1]}:{dateText:s,inlineClock:null,inlineClockText:null};
@@ -318,6 +327,35 @@ export function parseSenderDebitNotice(data){
  return {day,clock:clock.clock,printedDate:m[2]};
 }
 
+// BANK-359: independent bounded reread of the small transaction line and memo.
+export const SMALL_TEXT_RECHECK_PROMPT=[
+ "Chỉ đọc lại chữ nhỏ trên ảnh của MỘT giao dịch thành công; bỏ qua nền, viền điện thoại, thanh trạng thái và giờ chụp.",
+ "Tìm dòng sát dưới số tiền lớn (có thể GIỜ + THỨ + NGÀY, không nhãn); chép nguyên văn cả dòng vào transaction_line. Nếu có nhãn thời gian riêng, chép giá trị đó. Không mượn thời gian ngoài giao dịch.",
+ "Tìm đúng ô Nội dung/Nội dung chuyển tiền, đọc cả cột phải và tất cả dòng giá trị đến trước Phí chuyển tiền/Hình thức chuyển. Trả memo_lines là mảng từng dòng theo thứ tự; không tự thêm tên hay lời nhắn.",
+ "Chỉ trả JSON {transaction_line:null hoặc chuỗi, time_clear:true hoặc false, memo_lines:[] hoặc mảng chuỗi, memo_clear:true hoặc false}. Nếu một vùng không đủ rõ, cờ clear=false. Không dùng dữ liệu khác để điền."
+].join("\n");
+export function needsSmallTextRecheck(data){
+ const f=readV4Fields(data);
+ return data?.image_type==="successful_transfer_receipt"&&data?.transfer_success_visible===true&&data?.transaction_selection==="single_detail"&&
+ (!f.transfer_date_printed_vn||!f.transfer_time_printed_vn||!f.transfer_content);
+}
+export function recoverSmallText(data,second){
+ if(!needsSmallTextRecheck(data))return data;
+ const next={...data},before=readV4Fields(data);
+ if(second?.time_clear===true&&typeof second.transaction_line==="string"&&second.transaction_line.length<=64&&(!before.transfer_date_printed_vn||!before.transfer_time_printed_vn)){
+   const line=second.transaction_line.trim(),day=parsePrintedBillDate(line),parts=splitPrintedBillDateClock(line),clock=parts.inlineClock;
+   if(day&&clock){
+     const candidate={...next,transfer_date_printed_vn:line,transfer_time_printed_vn:parts.inlineClockText};
+     const f=readV4Fields(candidate);
+     if(!f.time_date_conflict&&!f.ocr_iso_date_conflict&&f.transfer_at_vn&&(!before.transfer_at_vn||before.transfer_at_vn.slice(0,16)===f.transfer_at_vn.slice(0,16))&&(!before.transfer_date_vn||before.transfer_date_vn===day)&&(!before.transfer_time_printed_vn||parsePrintedBillClock(before.transfer_time_printed_vn)?.clock.slice(0,5)===clock.clock.slice(0,5)))Object.assign(next,candidate);
+   }
+ }
+ if(!before.transfer_content&&second?.memo_clear===true&&Array.isArray(second.memo_lines)&&second.memo_lines.length>0&&second.memo_lines.length<=8&&second.memo_lines.every(x=>typeof x==="string"&&x.trim())){
+   const memo=second.memo_lines.map(x=>x.trim()).join(" ").replace(/\\s+/g," ");
+   if(memo.length<=220)next.transfer_content=memo;
+ }
+ return next;
+}
 export function readV4Fields(data,context={}){
  data=sanitizeJournalRecipientFields(data);
  const plain=x=>typeof x==="string"?x.trim():"";
