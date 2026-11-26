@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {buildBillVisionPrompt,REGION_GUIDE} from "../supabase/functions/v21-bank-bill-event/bill-vision-reader.mjs";
 import {RULE_VERSION,SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,
  BILL_LITERAL_MEMO_OCR_GUIDANCE,readV4Fields,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,parseSenderDebitNotice,validateVisionRead,SENDER_DEBIT_NOTICE_GUIDANCE} from "../supabase/functions/v21-bank-bill-event/bill-amount-rules.mjs";
 import {previewBillAppMatch} from "../supabase/functions/v21-bank-bill-event/bill-app-preview.mjs";
@@ -21,7 +22,9 @@ assert(TEN_FIELD_BILL_GUIDANCE.includes(BILL_LITERAL_MEMO_OCR_GUIDANCE),
 const worker=readFileSync(new URL("../supabase/functions/v21-bank-bill-event/index.ts",import.meta.url),"utf8");
 assert(worker.includes('const model="gemini-3.5-flash-lite"'),"same Gemini reader");
 assert(worker.includes('Deno.env.get("GEMINI_API_KEY")'),"reuse existing server secret");
-assert(worker.includes('const prompt=SYSTEM_PROMPT+"\\n\\n"+TEN_FIELD_BILL_GUIDANCE'),
+assert(worker.includes("const prompt=buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,executionDateGuide);")&&
+ buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE).includes(BILL_LITERAL_MEMO_OCR_GUIDANCE)&&
+ buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE).includes(REGION_GUIDE),
  "Gemini request uses the updated persistent rule");
 assert(worker.includes('temperature:0,responseMimeType:"application/json"'));
 assert(worker.includes('db.rpc("chat_bank_app_collect"'),"money only through existing guarded RPC");
