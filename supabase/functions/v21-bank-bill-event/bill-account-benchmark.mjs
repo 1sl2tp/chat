@@ -30,6 +30,6 @@ export async function runAccountBenchmark({db,key,digest,signal,fetchFn=fetch}){
   result.exact=benchmarkProof(await parseBillGeminiResponse(v.response,{signal:deadline}));
   state=result.exact?"verified":"needs_review";
  }catch{state="failed";}
- await rpc("v0_bill_crop_benchmark_finish",{p_id:job.id,p_lease:job.lease_id,p_state:state,p_result:result});
- return {state,...result,ledger_written:false};
+ const saved=await rpc("v0_bill_crop_benchmark_finish",{p_id:job.id,p_lease:job.lease_id,p_state:state,p_result:result});
+ return {state:typeof saved==="string"?saved:state,...result,ledger_written:false};
 }
