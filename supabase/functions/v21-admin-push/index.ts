@@ -104,30 +104,37 @@ Deno.serve(async(req:Request)=>{
     if(!vapid)return reply(503,{ok:false,code:"push_not_configured"});
 
     webpush.setVapidDetails(vapid.subject,vapid.publicKey,vapid.privateKey);
-    const [{data:claimed,error:claimError},{data:callClaimed,error:callClaimError},{data:bankClaimed,error:bankClaimError},{data:missedClaimed,error:missedClaimError}]=await Promise.all([
-      admin.rpc("v21_admin_push_claim",{p_limit:20}),
-      admin.rpc("v21_call_invite_push_claim",{p_limit:20}),
-      admin.rpc("chat_bank_admin_push_claim",{p_limit:15}),
-      admin.rpc("v21_missed_call_push_claim",{p_limit:12}),
-    ]);
-    if(claimError)return reply(500,{ok:false,code:"claim_failed"});
-    if(callClaimError)return reply(500,{ok:false,code:"call_claim_failed"});
-    // During staged rollout the new RPC may not exist yet. Never block
-    // ordinary Chat Push while only the bank queue migration is pending.
-    if(bankClaimError&&String(bankClaimError.code||'')!=='PGRST202')
-      return reply(500,{ok:false,code:"bank_claim_failed"});
-    if(missedClaimError&&String(missedClaimError.code||'')!=='PGRST202')
-      return reply(500,{ok:false,code:"missed_claim_failed"});
-
+    // Claim a single fenced event immediately before its processing, not all queues together.
+    // The existing wake-token authentication is unchanged.
     let delivered=0;
     let disabled=0;
     let retried=0;
-    const rows=Array.isArray(claimed)?claimed:[];
-    const callRows=Array.isArray(callClaimed)?callClaimed:[];
-    const bankRows=Array.isArray(bankClaimed)?bankClaimed:[];
-    const missedRows=Array.isArray(missedClaimed)?missedClaimed:[];
+    const rows:any[]=[];
+    const bankRows:any[]=[];
+    const claimOne=async(family:"chat"|"bank_admin")=>{
+      const {data,error}=await admin.rpc("v21_push_claim_fenced",{p_family:family,p_limit:1});
+      if(error){console.warn("fenced_push_claim_failed",family,clean(error.code,80));return null;}
+      return Array.isArray(data)&&data.length===1?data[0]:null;
+    };
+    const attemptArgs=(family:string,claim:any)=>({
+      p_family:family,p_id:String(claim.outbox_id??claim.id??""),
+      p_attempt:Number(claim.attempt_count),p_token:String(claim.attempt_token??"")
+    });
+    const beginAttempt=async(family:string,claim:any)=>{
+      const {data,error}=await admin.rpc("v21_push_begin_fenced",attemptArgs(family,claim));
+      if(error||data!==true)throw Error("push_attempt_not_started");
+    };
+    const finishAttempt=async(family:string,claim:any,dispatched:boolean,transientError:string,terminal:boolean,accepted:number)=>{
+      // A network call may have succeeded even when the client saw an error.
+      // Do not retry any attempt with an ambiguous or partially successful delivery.
+      const outcome=dispatched&&transientError?"unknown":accepted>0?"confirmed":"not_sent";
+      const {data,error}=await admin.rpc("v21_push_finish_fenced",{...attemptArgs(family,claim),p_outcome:outcome,p_terminal:terminal||(dispatched&&!transientError&&accepted===0)});
+      if(error||data!==true)console.warn("fenced_push_ack_failed",family,clean(error?.code,80));
+      if(data===true&&outcome==="not_sent"&&!terminal&&!dispatched&&Number(claim.attempt_count)<3)retried++;
+    };
 
-    for(const claim of rows){
+    for(let i=0;i<20;i++){
+      const claim=await claimOne("chat");if(!claim)break;rows.push(claim);
       const outboxId=String(claim?.outbox_id??"");
       if(!outboxId)continue;
       const messageId=String(claim?.message_id??"");
@@ -135,6 +142,7 @@ Deno.serve(async(req:Request)=>{
       const senderId=String(claim?.sender_account_id??"");
       let transientError="";
       let terminal=false;
+      let dispatched=false,accepted=0;
 
       try{
         const [recipientResult,senderResult,messageResult,mediaResult,subsResult]=await Promise.all([
@@ -165,24 +173,25 @@ Deno.serve(async(req:Request)=>{
             body:message.body,
             media:mediaResult.data??[],
           });
-          const outcome=await deliverToSubscriptions(admin,Array.isArray(subsResult.data)?subsResult.data:[],payload,"normal");
-          delivered+=outcome.delivered;
-          disabled+=outcome.disabled;
-          transientError=outcome.transientError;
+          const subscriptions=Array.isArray(subsResult.data)?subsResult.data:[];
+          if(!subscriptions.length){terminal=true;}else{
+            await beginAttempt("chat",claim);dispatched=true;
+            const outcome=await deliverToSubscriptions(admin,subscriptions,payload,"normal");
+            accepted=outcome.delivered;delivered+=outcome.delivered;disabled+=outcome.disabled;transientError=outcome.transientError;
+          }
         }
       }catch(error){
         transientError=clean((error as {message?:unknown})?.message||error,500)||"push_delivery_failed";
       }
 
-      if(transientError&&!terminal){
-        retried++;
-        void retryDelaySeconds(Number(claim?.attempt_count||1));
-        await admin.rpc("v21_admin_push_result",{p_outbox_id:outboxId,p_ok:false,p_error:transientError,p_dead:false});
-      }else{
-        await admin.rpc("v21_admin_push_result",{p_outbox_id:outboxId,p_ok:true,p_error:null,p_dead:false});
-      }
+      await finishAttempt("chat",claim,dispatched,transientError,terminal,accepted);
     }
 
+    // Other queue families are independent. A failed claim must not abandon
+    // a successful claim from another family.
+    const {data:callClaimed,error:callClaimError}=await admin.rpc("v21_call_invite_push_claim",{p_limit:20});
+    if(callClaimError)console.warn("call_claim_failed",clean(callClaimError.code,80));
+    const callRows=Array.isArray(callClaimed)?callClaimed:[];
     for(const claim of callRows){
       const outboxId=String(claim?.outbox_id??"");
       if(!outboxId)continue;
@@ -240,7 +249,8 @@ Deno.serve(async(req:Request)=>{
     // BANK-181: dedicated event outbox; never manufactures Chat messages.
     // Recheck canonical receipt/credit/link at delivery time. A near-simultaneous
     // match cancels obsolete "awaiting" pushes before they leave the server.
-    for(const claim of bankRows){
+    for(let i=0;i<15;i++){
+      const claim=await claimOne("bank_admin");if(!claim)break;bankRows.push(claim);
       const outboxId=String(claim?.id||"");
       const recipientId=String(claim?.recipient_account_id||"");
       const kind=String(claim?.kind||"");
@@ -249,6 +259,7 @@ Deno.serve(async(req:Request)=>{
       if(!outboxId)continue;
       let transientError="";
       let terminal=false;
+      let dispatched=false,accepted=0;
       try{
         const [recipientR,noticeR,receiptR,subscriptionR,reportR]=await Promise.all([
           admin.from("v21_accounts").select("id,role,locked_at,deleted_at").eq("id",recipientId).maybeSingle(),
@@ -339,26 +350,22 @@ Deno.serve(async(req:Request)=>{
             reason:why,report_contact_id:reportContactId,
             bill_recognized:billRecognized,
           });
-          const outcome=await deliverToSubscriptions(
-            admin,Array.isArray(subscriptionR.data)?subscriptionR.data:[],payload,"normal");
-          delivered+=outcome.delivered;
-          disabled+=outcome.disabled;
-          transientError=outcome.transientError;
+          const subscriptions=Array.isArray(subscriptionR.data)?subscriptionR.data:[];
+          if(!subscriptions.length){terminal=true;}else{
+            await beginAttempt("bank_admin",claim);dispatched=true;
+            const outcome=await deliverToSubscriptions(admin,subscriptions,payload,"normal");
+            accepted=outcome.delivered;delivered+=outcome.delivered;disabled+=outcome.disabled;transientError=outcome.transientError;
+          }
         }
       }catch(error){
         transientError=clean((error as {message?:unknown})?.message||error,300)||"bank_push_delivery_failed";
       }
-      const {error:finishError}=await admin.rpc("chat_bank_admin_push_result",{
-        p_outbox_id:outboxId,p_ok:terminal||!transientError,
-        p_error:terminal?"obsolete_event":transientError||null
-      });
-      if(finishError)console.warn("bank_push_ack_failed",clean(finishError.code,80));
-      if(transientError&&!terminal)retried++;
+      await finishAttempt("bank_admin",claim,dispatched,transientError,terminal,accepted);
     }
 
-
-    // CALL-186: distinct missed CHAT calls, not native iOS SIM calls.
-    // Revalidate every candidate before exposing a contact name in Web Push.
+    const {data:missedClaimed,error:missedClaimError}=await admin.rpc("v21_missed_call_push_claim",{p_limit:12});
+    if(missedClaimError)console.warn("missed_claim_failed",clean(missedClaimError.code,80));
+    const missedRows=Array.isArray(missedClaimed)?missedClaimed:[];
     for(const claim of missedRows){
       const id=String(claim?.id||"");
       if(!id)continue;
