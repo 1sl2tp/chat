@@ -900,6 +900,10 @@ jobs:
         run: |
           node labs/bank-reader-root-02/reader.test.mjs
           node labs/bank-reader-root-02/review.test.mjs
+          node labs/bank-reader-root-02/api.test.mjs
+      - name: Verify quota concurrency in isolated PostgreSQL
+        if: steps.lab.outputs.present == 'true'
+        run: bash labs/bank-reader-root-02/quota.concurrent.test.sh
       - name: Install pinned browser test dependency
         if: steps.lab.outputs.present == 'true'
         run: |

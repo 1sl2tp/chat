@@ -1,0 +1,7 @@
+# Read-only API — BANK-READER-ROOT-02
+This is the next integration step after merged PR #444, not a new reader design. Keep one canonical reader.mjs and one P1–P5 schema.
+- Existing authenticated Admin JWT (getUser + v0_admin_read session check); verify current session, role and active account through the existing SQL guard.
+- Accept conversation_id + asset_id only. v0_admin_media checks membership; Storage download respects current user's RLS. No service-role credential, no arbitrary URL/key input.
+- Independent quota candidate: 30 granted requests per Vietnam day, one grant per 10 seconds across callers, max one Gemini call per HTTP request, 30s model deadline, no retry/failover. These conservative initial limits are proposed, not applied. Failed provider requests consume a permit. Separate from financial settings, no auto-collection or customer notices.
+- Return validated literal/boxes, SHA-256, plan, request count and elapsed time. No financial truth inferred. No mutation of receipt, ledger, bank link, or keyboard. Never log literal, private media, or token.
+- Scope: authenticated request to read one existing image, not a batch scanner. No deployment or renewal of expired earlier test endpoint. Before release: verify SQL privileges, atomic permit concurrency, authenticated/unauthenticated/member mismatch, response schema with provider, storage bounds and real-image benchmark. Do not grant storage access beyond existing policies. Browser integration and live testing remain pending. This PR cannot be treated as a deployed endpoint.
