@@ -877,7 +877,7 @@ jobs:
   bank-reader-root-02:
     # Lab only; do not run on branches that predate the review tool.
     if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     permissions:
       contents: read
