@@ -1,6 +1,7 @@
 -- Disposable PG only.
 create role anon;
 create role authenticated;
+create role service_role;
 create schema v21_private;
 create table public.v21_push_outbox(id uuid primary key,state text,attempt_count integer,updated_at timestamptz);
 create table public.chat_bank_admin_push_outbox(like public.v21_push_outbox including all);
@@ -62,4 +63,13 @@ begin
  if (select state from public.chat_bank_admin_push_outbox where id=bank)<>'sent' then raise exception 'bank not sent'; end if;
  if has_function_privilege('authenticated','v21_private.push_claim_fenced(text,integer)','execute') then raise exception 'browser claim'; end if;
  raise notice 'fenced claim and completion fixture passed';
+end $$;
+
+do $$
+begin
+ if has_function_privilege('anon','public.v21_push_claim_fenced(text,integer)','execute')
+ or has_function_privilege('authenticated','public.v21_push_begin_fenced(text,uuid,integer,uuid)','execute')
+ or has_function_privilege('authenticated','public.v21_push_finish_fenced(text,uuid,integer,uuid,text,boolean)','execute')
+ or not has_function_privilege('service_role','public.v21_push_claim_fenced(text,integer)','execute')
+ then raise exception 'worker RPC grant'; end if;
 end $$;
