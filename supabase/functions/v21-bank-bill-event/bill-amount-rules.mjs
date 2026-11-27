@@ -299,16 +299,36 @@ export function needsAccountDigitRecheck(parsed){
  return ["successful_transfer_receipt","bank_credit_transaction","bank_credit_notification"].includes(parsed?.image_type)
   && parsed?.transfer_success_visible===true && /^29011819{5}$/.test(first);
 }
-export function resolveAccountDigitRecheck(parsed,second){
- const first=literalAccount(parsed?.recipient_account_visible);
- if(!needsAccountDigitRecheck(parsed)||second?.role!=="recipient_account"||second?.clear!==true||
+// Shared pure proof validator. No configured account is sent to vision.
+export function validateAccountDigitProof(second){
+ if(second?.role!=="recipient_account"||second?.clear!==true||
     !Array.isArray(second.digits)||second.digits.length!==13||
     !second.digits.every(x=>typeof x==="string"&&/^\d$/.test(x))||
     !Array.isArray(second.reverse_digits)||second.reverse_digits.length!==13||
     !second.reverse_digits.every(x=>typeof x==="string"&&/^\d$/.test(x))||
     second.digit_count!==13||second.trailing_nines!==6)return null;
  const literal=literalAccount(second.visible),digits=second.digits.join("");
- if(second.reverse_digits.join("")!==[...digits].reverse().join("")||literal!==digits||literal!==first+"9"||literal!=="2901181999999")return null;
+ if(second.reverse_digits.join("")!==[...digits].reverse().join("")||literal!==digits||literal!=="2901181999999")return null;
+ return literal;
+}
+// Display-only diagnostic; never widens eligibility or supplies missing digits.
+export function classifyAccountReadAnomaly(parsed){
+ const raw=sanitizeJournalRecipientFields(parsed);
+ if(!["successful_transfer_receipt","bank_credit_transaction","bank_credit_notification"].includes(raw?.image_type)||raw?.transfer_success_visible!==true)return "not_eligible";
+ const value=literalAccount(raw.recipient_account_visible);
+ if(!value)return "missing";
+ if(/[*xX•…]/u.test(value))return "masked_or_unclear";
+ if(!/^\d+$/.test(value))return "non_digit";
+ if(needsAccountDigitRecheck(raw))return "known_missing_digit";
+ if(value.length<13)return "short_or_other_account";
+ if(value.length>13)return "long_or_other_account";
+ return value==="2901181999999"?"exact":"different_account";
+}
+export function resolveAccountDigitRecheck(parsed,second){
+ const first=literalAccount(parsed?.recipient_account_visible);
+ if(!needsAccountDigitRecheck(parsed))return null;
+ const literal=validateAccountDigitProof(second);
+ if(!literal||literal!==first+"9")return null;
  return {first_visible:parsed.recipient_account_visible,second_visible:second.visible,digit_count:13,trailing_nines:6,source:"independent_focused_vision"};
 }
 
@@ -351,7 +371,7 @@ export function recoverSmallText(data,second){
    }
  }
  if(!before.transfer_content&&second?.memo_clear===true&&Array.isArray(second.memo_lines)&&second.memo_lines.length>0&&second.memo_lines.length<=8&&second.memo_lines.every(x=>typeof x==="string"&&x.trim())){
-   const memo=second.memo_lines.map(x=>x.trim()).join(" ").replace(/\\s+/g," ");
+   const memo=second.memo_lines.map(x=>x.trim()).join(" ").replace(/\s+/g," ");
    if(memo.length<=220)next.transfer_content=memo;
  }
  return next;

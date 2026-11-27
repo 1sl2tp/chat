@@ -9,7 +9,7 @@ export async function runFocusedTick({db,key,digest,signal,fetchFn=fetch}){
  if(!key)throw Error("missing_model_key");
  await call("v0_bill_focus_seed",{p_limit:20});
  const store={claim:()=>call("v0_bill_focus_claim"),finish:(job,v)=>call("v0_bill_focus_finish",{p_id:job.id,p_lease:job.lease_id,p_state:v.state,p_evidence:v.evidence})};
- return runDeferred({store,key,digest,encode,signal,fetchFn,makeRegionCache:(job,trace)=>makeAccountRegionCache(db,"focused",job,{trace}),download:async path=>{
+ return runDeferred({store,key,digest,encode,signal,fetchFn,makeRegionCache:(job,trace)=>makeAccountRegionCache(db,"focused",job,{trace,signal}),download:async path=>{
   if(typeof path!=="string"||!path||path.length>1000||signal?.aborted)throw Error("invalid_storage_path");
   const {data,error}=await db.storage.from("v21-media").download(path);
   if(error||!data||data.size<1||data.size>6_000_000||signal?.aborted)throw Error("storage_unavailable");

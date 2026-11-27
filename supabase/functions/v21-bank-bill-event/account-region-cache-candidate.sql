@@ -10,20 +10,20 @@ alter table v0_private.bill_account_region_cache enable row level security;
 revoke all on v0_private.bill_account_region_cache from public,anon,authenticated,service_role;
 create function v0_private.bill_account_region_cache_scope(p_kind text,p_id uuid,p_lease uuid,p_sha text,p_version integer) returns uuid
 language plpgsql set search_path='' as $f$
-declare rid uuid; rh text;
+declare rid uuid; rh text; until_at timestamptz;
 begin
  if p_version is distinct from 1 or p_sha is null or p_sha !~ '^[a-f0-9]{64}$' or p_lease is null then return null;end if;
  if p_kind='benchmark' and public.v0_bill_focus_mode()='pilot' then
-  select receipt_id,raw_hash into rid,rh from v0_private.bill_account_crop_benchmark where receipt_id=p_id and lease_id=p_lease and lease_until>now() and state='running' and image_sha256=p_sha;
+  select receipt_id,raw_hash,lease_until into rid,rh,until_at from v0_private.bill_account_crop_benchmark where receipt_id=p_id and lease_id=p_lease and lease_until>clock_timestamp() and state='running' and image_sha256=p_sha for update;
  elsif p_kind='focused' and public.v0_bill_focus_mode() in ('pilot','auto') then
-  select receipt_id,raw_hash into rid,rh from v0_private.bill_focused_reread where id=p_id and lease_id=p_lease and lease_until>now() and state='running' and field='account' and image_sha256=p_sha and v0_private.bill_focus_allowed(receipt_id);
+  select receipt_id,raw_hash,lease_until into rid,rh,until_at from v0_private.bill_focused_reread where id=p_id and lease_id=p_lease and lease_until>clock_timestamp() and state='running' and field='account' and image_sha256=p_sha and v0_private.bill_focus_allowed(receipt_id) for update;
  end if;
- if rid is null or not exists(select 1 from public.chat_bank_bill_receipts r join public.v21_media_assets a on a.id=r.media_asset_id and a.message_id=r.message_id and a.owner_account_id=r.customer_account_id and a.deleted_at is null where r.id=rid and r.image_sha256=p_sha and md5(r.raw_read::text)=rh and r.raw_read->>'transfer_success_visible'='true' and r.status in ('received','amount_read','review','duplicate') and (p_kind<>'benchmark' or (r.status='received' and r.ledger_id is not null))) then return null;end if;
+ if rid is null or until_at<=clock_timestamp() or not exists(select 1 from public.chat_bank_bill_receipts r join public.v21_media_assets a on a.id=r.media_asset_id and a.message_id=r.message_id and a.owner_account_id=r.customer_account_id and a.deleted_at is null where r.id=rid and r.image_sha256=p_sha and md5(r.raw_read::text)=rh and r.raw_read->>'transfer_success_visible'='true' and r.status in ('received','amount_read','review','duplicate') and (p_kind<>'benchmark' or (r.status='received' and r.ledger_id is not null))) then return null;end if;
  return rid;
 end $f$;
 revoke all on function v0_private.bill_account_region_cache_scope(text,uuid,uuid,text,integer) from public,anon,authenticated,service_role;
 create function public.v0_bill_account_region_cache_get(p_kind text,p_id uuid,p_lease uuid,p_sha text,p_version integer) returns jsonb
-language plpgsql security definer set search_path='' as $f$
+language plpgsql security definer set search_path='' set lock_timeout='500ms' as $f$
 declare rid uuid; box jsonb;
 begin
  rid:=v0_private.bill_account_region_cache_scope(p_kind,p_id,p_lease,p_sha,p_version);
@@ -31,7 +31,7 @@ begin
  return box;
 end $f$;
 create function public.v0_bill_account_region_cache_put(p_kind text,p_id uuid,p_lease uuid,p_sha text,p_version integer,p_region jsonb) returns boolean
-language plpgsql security definer set search_path='' as $f$
+language plpgsql security definer set search_path='' set lock_timeout='500ms' as $f$
 declare rid uuid; y0 int;x0 int;y1 int;x1 int;
 begin
  rid:=v0_private.bill_account_region_cache_scope(p_kind,p_id,p_lease,p_sha,p_version);
@@ -45,7 +45,7 @@ begin
  return true;
 end $f$;
 create function public.v0_bill_account_region_cache_remove(p_kind text,p_id uuid,p_lease uuid,p_sha text,p_version integer) returns boolean
-language plpgsql security definer set search_path='' as $f$
+language plpgsql security definer set search_path='' set lock_timeout='500ms' as $f$
 declare rid uuid;
 begin
  rid:=v0_private.bill_account_region_cache_scope(p_kind,p_id,p_lease,p_sha,p_version);

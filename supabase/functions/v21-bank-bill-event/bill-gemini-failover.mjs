@@ -76,9 +76,14 @@ export async function parseBillGeminiResponse(response,{signal}={}){
    throw new Error("gemini_invalid_json");
  }
  if(signal?.aborted)throw new Error("AbortError");
- const parts=envelope?.candidates?.[0]?.content?.parts;
+ const candidate=envelope?.candidates?.[0];
+ // Missing finishReason remains compatible with older responses; explicit
+ // non-STOP or blocked output is never complete evidence.
+ if(envelope?.promptFeedback?.blockReason&&envelope.promptFeedback.blockReason!=="BLOCK_REASON_UNSPECIFIED")throw new Error("gemini_invalid_json");
+ if(candidate?.finishReason!=null&&candidate.finishReason!=="STOP")throw new Error("gemini_invalid_json");
+ const parts=candidate?.content?.parts;
  if(!Array.isArray(parts)||!parts.length)throw new Error("gemini_invalid_json");
- const text=parts.map(x=>typeof x?.text==="string"?x.text:"").join("").trim();
+ const text=parts.map(x=>x?.thought!==true&&typeof x?.text==="string"?x.text:"").join("").trim();
  // Rare model replies wrap a valid JSON object in a fenced block even with
  // responseMimeType=application/json. Accept only a COMPLETE single fence.
  let raw=text;
