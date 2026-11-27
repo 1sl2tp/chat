@@ -44,3 +44,17 @@ for(const flag of ["time_date_conflict","clock_text_conflict","ocr_iso_date_conf
  }
 }
 console.log("Persisted date/clock conflict guards passed.");
+
+const disagreeRaw={...raw,account_digit_recheck_state:"digit_evidence_disagrees"};
+assert.deepEqual(deferredFields(disagreeRaw),["account"]);
+assert.deepEqual(deferredFields({...disagreeRaw,recipient_account_visible:full}),[]);
+assert.deepEqual(deferredFields({...disagreeRaw,image_type:"not_transfer_receipt"}),[]);
+assert.deepEqual(deferredFields({...clockRaw,small_text_recheck_state:"digit_evidence_disagrees",account_digit_recheck_state:"not_required"}),[]);
+job.raw=disagreeRaw;job.field="account";job.mime_type="image/jpeg";
+let mismatchCalls=0;
+const modelResponse=(p)=>({ok:true,status:200,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(p)}]}}]})});
+assert.equal((await run(job.image_sha256,async(url,opts)=>{mismatchCalls++;assert.match(url,/models\/gemini-3\.5-flash:generateContent$/);const p=JSON.parse(opts.body).contents[0].parts[0].text;assert(!p.includes(full));return modelResponse(proof)})).state,"verified");
+assert.equal(done.at(-1).evidence.account.second_visible,full);
+assert.equal((await run(job.image_sha256,async()=>{mismatchCalls++;return modelResponse({...proof,reverse_digits:digits})})).state,"needs_review");
+assert.equal(done.at(-1).evidence,null);assert.equal(mismatchCalls,2);
+console.log("Disagreement recovery uses alternate vision, strict proof and one request per claim.");
