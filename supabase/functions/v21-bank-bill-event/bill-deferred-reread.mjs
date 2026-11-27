@@ -2,7 +2,7 @@ import {normalizeBillImageMime,validateBillImageMime} from "./bill-image-identit
 // Display-only focused recovery; no ledger, receipt mutation, or matcher.
 // Store owns atomic claim + version-checked save. Caller is a trusted server.
 import {ACCOUNT_DIGIT_RECHECK_PROMPT,SMALL_TEXT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,needsSmallTextRecheck,recoverSmallText,readV4Fields} from "./bill-amount-rules.mjs";
-import {requestBillGemini,parseBillGeminiResponse,BILL_OCR_FALLBACK_MODEL} from "./bill-gemini-failover.mjs";
+import {requestBillGemini,parseBillGeminiResponse,BILL_OCR_FALLBACK_MODEL,visionTransportReason} from "./bill-gemini-failover.mjs";
 import {accountImageParts} from "./bill-account-crop.mjs";
 import {canLocateAccountRegion,prepareLocatedAccountParts} from "./bill-account-locator.mjs";
 const retryable=s=>["timeout","budget_exhausted","request_failed","invalid_json","gemini_http_502","gemini_http_503","gemini_http_504"].includes(s);
@@ -50,17 +50,25 @@ export function displayEvidence(raw,field,second){
  if(!before.transfer_content&&after.transfer_content)result.memo=after.transfer_content;
  return Object.keys(result).length?result:null;
 }
-export async function runDeferred({store,download,digest,encode,key,fetchFn=fetch,signal,makeRegionCache}){
- const job=await store.claim();if(!job)return {state:"idle",ledger_written:false};
+// Existing parent cap remains 30s with locator, 15s otherwise.
+export function focusedReadDeadline(combined,{disagreement,locate}){
+ return disagreement&&locate?combined:AbortSignal.any([combined,AbortSignal.timeout(15000)]);
+}
+export async function runDeferred({store,download,digest,encode,key,fetchFn=fetch,signal,makeRegionCache,logFn=(name,fields)=>console.info(name,JSON.stringify(fields))}){
+ const start=Date.now();let stage="claim",stageStart=start,activeSignal=signal,requests=0;
+ const report=(reason)=>logFn("bank_focused_stage",{stage,reason,elapsed_ms:Math.max(0,Date.now()-stageStart),total_ms:Math.max(0,Date.now()-start),requests});
+ const enter=(next,reason="ok")=>{report(reason);stage=next;stageStart=Date.now();};
+ const counted=(...args)=>{requests++;return fetchFn(...args)};
+ const job=await store.claim();if(!job){report("idle");return {state:"idle",ledger_written:false};} enter("eligibility");
  // Compute once. Persist once; ambiguous persistence is resolved by lease expiry,
  // not a second finish call with a different state.
  let state="retry",evidence=null;
  const mime=normalizeBillImageMime(job.mime_type);
  try{
-  if(!deferredFields(job.raw).includes(job.field)||!(/^[a-f0-9]{64}$/.test(job.image_sha256))||!["image/png","image/jpeg","image/webp"].includes(mime))state="stale";
+  if(!deferredFields(job.raw).includes(job.field)||!(/^[a-f0-9]{64}$/.test(job.image_sha256))||!["image/png","image/jpeg","image/webp"].includes(mime)){state="stale";report("ineligible");}
   else{
-   const bytes=await download(job.storage_key,signal);
-   if(!(bytes instanceof Uint8Array)||bytes.length<1||bytes.length>6_000_000||!validateBillImageMime(bytes,mime)||await digest(bytes)!==job.image_sha256)state="stale";
+   enter("download");const bytes=await download(job.storage_key,signal);enter("identity");
+   if(!(bytes instanceof Uint8Array)||bytes.length<1||bytes.length>6_000_000||!validateBillImageMime(bytes,mime)||await digest(bytes)!==job.image_sha256){state="stale";report("image_mismatch");}
    else{
     const disagreement=job.field==="account"&&job.raw.account_digit_recheck_state==="digit_evidence_disagrees";
     const prompt=job.field==="account"?(disagreement?ACCOUNT_DIGIT_RECHECK_PROMPT+"\nKhoanh vùng bằng mắt ngay sau nhãn tài khoản người nhận, bỏ qua nền điện thoại. Kiểm tra điểm bắt đầu và kết thúc của dãy số. Đếm các ký tự lặp theo vị trí nhìn thấy; nếu không phân biệt được từng ký tự thì clear=false.":ACCOUNT_DIGIT_RECHECK_PROMPT):clockOnlyEligible(job.raw)?CLOCK_ONLY_PROMPT:SMALL_TEXT_RECHECK_PROMPT;
@@ -70,22 +78,26 @@ export async function runDeferred({store,download,digest,encode,key,fetchFn=fetc
     const storedRegion=disagreement?null:job.raw.recipient_account_region;
     const locate=job.field==="account"&&canLocateAccountRegion(bytes,mime,storedRegion);
     const bounded=AbortSignal.timeout(locate?30000:15000),combined=signal?AbortSignal.any([signal,bounded]):bounded;
-    const trace=event=>console.info("bank_account_crop_trace",JSON.stringify(event));
+    activeSignal=combined;enter("prepare");
+    const trace=event=>logFn("bank_account_crop_trace",event);
     const cache=locate&&!disagreement?makeRegionCache?.(job,trace):null;
     let usedRegion=null,cacheHit=false;
-    const imageParts=job.field==="account"?(locate?await prepareLocatedAccountParts({bytes,mime,stored:storedRegion,encode,key,fetchFn,signal:combined,trace,cache,onCropRegion:(region,hit)=>{usedRegion=region;cacheHit=hit;}}):await accountImageParts({bytes,mime,region:storedRegion,encode,signal:combined,trace})):[{inlineData:{mimeType:mime,data:encode(bytes)}}];
-    const readDeadline=AbortSignal.any([combined,AbortSignal.timeout(15000)]);
-    const v=await requestBillGemini({key,model:disagreement?BILL_OCR_FALLBACK_MODEL:"gemini-3.5-flash-lite",maxRequests:1,signal:readDeadline,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},...imageParts]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
-    const parsed=await parseBillGeminiResponse(v.response,{signal:readDeadline});
-    evidence=displayEvidence(job.raw,job.field,parsed);state=evidence?"verified":"needs_review";
+    const imageParts=job.field==="account"?(locate?await prepareLocatedAccountParts({bytes,mime,stored:storedRegion,encode,key,fetchFn:counted,signal:combined,trace,cache,onCropRegion:(region,hit)=>{usedRegion=region;cacheHit=hit;}}):await accountImageParts({bytes,mime,region:storedRegion,encode,signal:combined,trace})):[{inlineData:{mimeType:mime,data:encode(bytes)}}];
+    const readDeadline=focusedReadDeadline(combined,{disagreement,locate});
+    activeSignal=readDeadline;enter("read_transport");
+    const v=await requestBillGemini({key,model:disagreement?BILL_OCR_FALLBACK_MODEL:"gemini-3.5-flash-lite",maxRequests:1,signal:readDeadline,fetchFn:counted,logFn,payload:{contents:[{role:"user",parts:[{text:prompt},...imageParts]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
+    enter("read_parse");const parsed=await parseBillGeminiResponse(v.response,{signal:readDeadline});enter("evidence");
+    evidence=displayEvidence(job.raw,job.field,parsed);state=evidence?"verified":"needs_review";enter("cache_finish",evidence?"verified":"proof_mismatch");
     if(evidence&&usedRegion&&!cacheHit&&!combined.aborted)await cache?.put(usedRegion);
     if(!evidence&&cacheHit&&!combined.aborted)await cache?.remove();
    }
   }
  }catch(error){
   const msg=String(error?.message||"");
+  report(visionTransportReason(error,activeSignal));
   state=/^gemini_http_(400|401|403|404|429)$/.test(msg)?"needs_review":"retry";
  }
- const saved=await store.finish(job,{state,evidence});
+ stage="persist";stageStart=Date.now();
+ const saved=await store.finish(job,{state,evidence});report("finished");
  return {state:typeof saved==="string"?saved:state,ledger_written:false};
 }
