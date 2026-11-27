@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import {benchmarkProof,runAccountBenchmark} from "../supabase/functions/v21-bank-bill-event/bill-account-benchmark.mjs";
+const full="2901181999999",digits=[...full],proof={role:"recipient_account",clear:true,visible:full,digits,reverse_digits:[...digits].reverse(),digit_count:13,trailing_nines:6};
+assert.equal(benchmarkProof(proof),true);
+for(const bad of [{...proof,clear:false},{...proof,visible:full.slice(1)},{...proof,role:"sender_account"},{...proof,reverse_digits:digits},{...proof,digit_count:12}])assert.equal(benchmarkProof(bad),false);
+const bytes=new Uint8Array([1,2,3]),job={id:"fixture",lease_id:"lease",image_sha256:"a".repeat(64),storage_key:"test.png",mime_type:"image/png",region:null};
+let calls=0,saved=null;
+const db={rpc:async(n,args)=>{if(n==="v0_bill_crop_benchmark_claim")return {data:job};assert.equal(n,"v0_bill_crop_benchmark_finish");saved=args;return {data:args.p_state}},storage:{from:b=>{assert.equal(b,"v21-media");return {download:async p=>{assert.equal(p,"test.png");return {data:new Blob([bytes])}}}}}};
+const fetchFn=async(url,opts)=>{calls++;assert(!opts.body.includes(full));return {ok:true,status:200,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(proof)}]}}]})}};
+const result=await runAccountBenchmark({db,key:"fixture",digest:async()=>job.image_sha256,fetchFn});
+assert.deepEqual(result,{state:"verified",crop_used:false,exact:true,requests:1,ledger_written:false});
+assert.equal(saved.p_state,"verified");assert.equal(calls,1);
+assert.equal((await runAccountBenchmark({db,key:"fixture",digest:async()=>"b".repeat(64),fetchFn})).state,"failed");
+assert.equal(calls,1);
+console.log("Read-only benchmark proof and digest gate passed.");

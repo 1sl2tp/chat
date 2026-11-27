@@ -19,6 +19,8 @@ jobs:
       - run: node tests/test_bank_deferred_reread.mjs
       - run: node tests/test_bank_focus_activation.mjs
       - run: node tests/test_bank_account_crop.mjs
+      - run: node tests/test_bank_account_locator.mjs
+      - run: node tests/test_bank_account_benchmark.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -40,3 +42,5 @@ jobs:
       - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/dispatch-test.sql
 
       - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/activation-test.sql
+
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/account-benchmark-test.sql
