@@ -1,0 +1,22 @@
+import {FIELDS,checkAccountProof,planWithValidation} from "./reader.mjs";
+
+const acct="1234567899999", proof={digits_left_to_right:acct.split(""),digits_right_to_left:acct.split("").reverse(),visible_count:acct.length};
+const clone=x=>JSON.parse(JSON.stringify(x));
+const f={kind:"receipt",selection:"single",direction:"unsigned",fields:Object.fromEntries(FIELDS.map(k=>[k,{state:"missing",literal:null,box:null}]))};
+f.fields.amount={state:"clear",literal:"123.456 VNĐ",box:[10,10,20,90]};f.fields.recipient_account={state:"clear",literal:acct,box:[30,10,40,90]};
+let n=0;const ok=b=>{if(!b)throw Error("assert "+n);n++};
+ok(checkAccountProof(acct,proof).ok);
+ok(checkAccountProof("123 4567899999",proof).ok);
+ok(checkAccountProof("123-4567899999",proof).ok);
+ok(!checkAccountProof(acct.slice(0,-1),proof).ok);
+ok(!checkAccountProof("****99999",proof).ok);
+ok(!checkAccountProof(acct+"A",proof).ok);
+ok(!checkAccountProof(acct,{...proof,visible_count:12}).ok);
+ok(!checkAccountProof(acct,{...proof,digits_right_to_left:proof.digits_left_to_right}).ok);
+ok(planWithValidation(f,proof,{accountMatch:true,amountMatch:true}).mode==="stop");
+ok(planWithValidation(f,proof,{accountMatch:false,amountMatch:true}).reasons.recipient_account==="independent_bank_mismatch");
+ok(planWithValidation(f,null,{accountMatch:true}).fields.includes("recipient_account"));
+const b=clone(f);b.fields.recipient_account.box=null;ok(planWithValidation(b,proof,{accountMatch:false}).mode==="full_image");
+ok(planWithValidation(f,proof,{amountMatch:false}).fields.includes("amount"));
+const c=clone(f);c.selection="ambiguous";ok(planWithValidation(c,proof,{accountMatch:false}).mode==="review");
+console.log(n+' independent validation assertions passed');
