@@ -1,0 +1,14 @@
+name: FINANCE-NOTICE-ROOT-01 snapshot fixture
+on:
+  pull_request:
+    paths:
+      - 'labs/finance-notice-root-01/**'
+      - '.github/workflows/finance-notice-root-01.yml'
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --test labs/finance-notice-root-01/snapshot.test.mjs
