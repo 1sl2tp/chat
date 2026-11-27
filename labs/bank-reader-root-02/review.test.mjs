@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {FIELDS} from "./reader.mjs";
-import {boxFromPoints,labelState,regionIoU,scoreSample} from "./review.mjs";
+import {boxFromPoints,labelState,regionIoU,scoreSample,restoreReview,exportReview} from "./review.mjs";
 let n=0;const eq=(a,b)=>{assert.deepEqual(a,b);n++};
 eq(boxFromPoints({x:20,y:40},{x:80,y:100},100,200),[200,200,500,800]);
 eq(boxFromPoints({x:160,y:200},{x:40,y:80},200,400),[200,200,500,800]);
@@ -15,7 +15,7 @@ eq(regionIoU([rect],[rect]),1);eq(regionIoU([rect],[[100,100,200,200]]),0);
 eq(regionIoU([rect],[[0,50,100,150]]),1/3);
 eq(regionIoU([rect,rect],[rect]),1);eq(regionIoU([],[]),null);
 const raw={kind:"receipt",selection:"single",direction:"unsigned",status:"success",layout:"screenshot",fields:Object.fromEntries(FIELDS.map(k=>[k,k==="amount"?clear:empty])),account_check:null};
-const gold={image_sha256:hash,kind:"receipt",kind_reviewed:true,fields:Object.fromEntries(FIELDS.map(k=>[k,label(raw.fields[k])]))};
+const gold={image_sha256:hash,coordinate_frame:"displayed_original",frame_confirmed:true,kind:"receipt",kind_reviewed:true,fields:Object.fromEntries(FIELDS.map(k=>[k,label(raw.fields[k])]))};
 const metrics={image_sha256:hash,pass:1,requests:1,elapsed_ms:1234};
 eq(scoreSample(gold,raw,metrics).exact,10);eq(scoreSample(gold,raw,metrics).mean_iou,1);
 eq(scoreSample(gold,raw,{...metrics,requests:2}).state,"invalid_measurement");
@@ -25,4 +25,15 @@ eq(scoreSample({...gold,fields:{}},raw,metrics).state,"unverified_gold");
 eq(scoreSample(gold,{},metrics).state,"invalid_response");
 const bad=JSON.parse(JSON.stringify(raw));bad.fields.amount.text="123.457 VNĐ";
 eq(scoreSample(gold,bad,metrics).exact,9);
+
+eq(scoreSample({...gold,frame_confirmed:false},raw,metrics).state,"unverified_gold");
+const local={image_sha256:hash,file:{name:"fixture.png"},fields:{}};
+const resumed=restoreReview(local,gold);
+eq(resumed.frame_confirmed,false);eq(resumed.fields.amount.text,clear.text);
+eq(exportReview(resumed).fields.amount.text,clear.text);eq(Object.hasOwn(exportReview(resumed),"file"),false);
+eq(scoreSample(exportReview(resumed),raw,metrics).state,"unverified_gold");
+eq(restoreReview(local,exportReview(resumed)).fields.amount.text,clear.text);
+assert.throws(()=>restoreReview({...local,image_sha256:"b".repeat(64)},gold));n++;
+assert.throws(()=>restoreReview(local,{...gold,fields:{amount:{...gold.fields.amount,source:"bank"}}}));n++;
 console.log("Review and measurement: "+n+" assertions passed");
+
