@@ -16,3 +16,5 @@ jobs:
         with:
           node-version: '22'
       - run: node labs/bank-reader-root-02/reader.test.mjs
+
+      - run: node labs/bank-reader-root-02/review.test.mjs
