@@ -6,7 +6,7 @@ import {normalizeBillImageMime,validateBillImageMime} from "./bill-image-identit
 import {ACCOUNT_DIGIT_RECHECK_PROMPT,validateAccountDigitProof} from "./bill-amount-rules.mjs";
 import {requestBillGemini,parseBillGeminiResponse} from "./bill-gemini-failover.mjs";
 // Isolated, short-lived read-only pilot. No receipt/ledger writes, no production worker imports.
-const VERSION="6e092576eb3feae2c9f455c53542fce59a48d458";
+const VERSION="1b7495a7c7a56d2fae802c928a00187252d535e0";
 const CASES={
  small:{id:"eb514bf3-003e-4651-9c9e-55109df7a2c2",ledger:1280,notice:499,amount:677000,hash:"2781fcf69b4883601fff351aa5cd0518119da56c154e7327c2fde73930d4e123"},
  control:{id:"a70acdb6-f929-4582-ad88-327bd72688c2",ledger:1281,notice:500,amount:10000000,hash:"35b72c80f78d9535ba8a7d93848d4934443ed1f281be2b2e8a0c1dd268eeec43"}
@@ -23,11 +23,18 @@ Deno.serve(async req=>{
  const cfg=Array.isArray(c)?c[0]:c;
  if(ce||!exact(req.headers.get("x-internal-dispatch-key")||"",String(cfg?.scan_key||"")))return response({error:"forbidden"},403);
  const body=await req.json().catch(()=>null);
- if(!body||!Object.hasOwn(CASES,body.case))return response({error:"case"},400);
+ if(!body||body.case!=="small")return response({error:"case"},400);
  const target=CASES[body.case as keyof typeof CASES];
  const {data:mode,error:me}=await db.rpc("v0_bill_focus_mode");
  if(me||mode!=="pilot")return response({error:"not_pilot"},409);
  const started=Date.now();let calls=0,crop=false,localized=false,finishCount=0;
+ const stages:Record<string,unknown>[]=[];
+ const logFn=(name:string,fields:any)=>{
+  if(name==="bank_focused_stage"&&stages.length<30){
+   stages.push({stage:fields.stage,reason:fields.reason,elapsed_ms:fields.elapsed_ms,total_ms:fields.total_ms,requests:fields.requests});
+  }
+  console.info(name,JSON.stringify(fields));
+ };
  const signal=AbortSignal.timeout(45000);
  try{
   const {data:r,error:re}=await db.from("chat_bank_bill_receipts").select("id,media_asset_id,message_id,customer_account_id,status,ledger_id,amount_vnd,image_sha256,raw_read").eq("id",target.id).single();
@@ -55,7 +62,7 @@ Deno.serve(async req=>{
   if(body.case==="small"){
    // Execute the exact candidate deferred reader, but claim/finish live only in memory.
    const job={id:r.id,raw:r.raw_read,field:"account",image_sha256:r.image_sha256,storage_key:a.storage_key,mime_type:a.mime_type};
-   const result=await runDeferred({store:{claim:async()=>job,finish:async(_j:any,v:any)=>{finishCount++;proof=v.state==="verified"&&!!v.evidence?.account;return v.state}},download:async()=>bytes,digest,encode,key,fetchFn:counted,signal});
+   const result=await runDeferred({store:{claim:async()=>job,finish:async(_j:any,v:any)=>{finishCount++;proof=v.state==="verified"&&!!v.evidence?.account;return v.state}},download:async()=>bytes,digest,encode,key,fetchFn:counted,signal,logFn});
    state=result.state;
    if(finishCount!==1)throw Error("finish_guard");
   }else{
@@ -66,7 +73,7 @@ Deno.serve(async req=>{
    proof=validateAccountDigitProof(await parseBillGeminiResponse(v.response,{signal:readSignal}))!==null;
    state=proof?"verified":"needs_review";
   }
-  return response({version:VERSION,case:body.case,state,exact:proof,requests:calls,locator_called:localized,crop_used:crop,elapsed_ms:Date.now()-started,ledger_written:false,receipt_written:false});
+  return response({version:VERSION,case:body.case,state,exact:proof,requests:calls,locator_called:localized,crop_used:crop,elapsed_ms:Date.now()-started,stages,ledger_written:false,receipt_written:false});
  }catch(e){
   const msg=String(e?.message||"");
   return response({version:VERSION,case:body.case,state:"failed",reason:/^(receipt|link|media|storage|image|finish)_guard$|^missing_key$|^request_cap$|^gemini_http_[0-9]{3}$|^gemini_invalid_json$/.test(msg)?msg:signal.aborted?"timeout":"request_failed",requests:calls,locator_called:localized,crop_used:crop,elapsed_ms:Date.now()-started,ledger_written:false,receipt_written:false},502);
