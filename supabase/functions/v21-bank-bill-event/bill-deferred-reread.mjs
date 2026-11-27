@@ -24,24 +24,26 @@ export function displayEvidence(raw,field,second){
 }
 export async function runDeferred({store,download,digest,encode,key,fetchFn=fetch,signal}){
  const job=await store.claim();if(!job)return {state:"idle",ledger_written:false};
- const finish=(state,evidence=null)=>store.finish(job,{state,evidence});
+ // Compute once. Persist once; ambiguous persistence is resolved by lease expiry,
+ // not a second finish call with a different state.
+ let state="retry",evidence=null;
  try{
-  if(!deferredFields(job.raw).includes(job.field)||!(/^[a-f0-9]{64}$/.test(job.image_sha256))){await finish("stale");return {state:"stale",ledger_written:false};}
-  const bytes=await download(job.storage_key);
-  if(!(bytes instanceof Uint8Array)||bytes.length<1||bytes.length>6_000_000||await digest(bytes)!==job.image_sha256){await finish("stale");return {state:"stale",ledger_written:false};}
-  if(!["image/png","image/jpeg","image/webp"].includes(job.mime_type)){await finish("stale");return {state:"stale",ledger_written:false};}
-  const prompt=job.field==="account"?ACCOUNT_DIGIT_RECHECK_PROMPT:SMALL_TEXT_RECHECK_PROMPT;
-  const bounded=AbortSignal.timeout(15000);
-  const combined=signal?AbortSignal.any([signal,bounded]):bounded;
-  const v=await requestBillGemini({key,model:"gemini-3.5-flash-lite",maxRequests:1,signal:combined,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:job.mime_type,data:encode(bytes)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:768}}});
-  const parsed=await parseBillGeminiResponse(v.response,{signal:combined});
-  const evidence=displayEvidence(job.raw,job.field,parsed);
-  const state=evidence?"verified":"needs_review";
-  await finish(state,evidence);return {state,ledger_written:false};
+  if(!deferredFields(job.raw).includes(job.field)||!(/^[a-f0-9]{64}$/.test(job.image_sha256))||!["image/png","image/jpeg","image/webp"].includes(job.mime_type))state="stale";
+  else{
+   const bytes=await download(job.storage_key,signal);
+   if(!(bytes instanceof Uint8Array)||bytes.length<1||bytes.length>6_000_000||await digest(bytes)!==job.image_sha256)state="stale";
+   else{
+    const prompt=job.field==="account"?ACCOUNT_DIGIT_RECHECK_PROMPT:SMALL_TEXT_RECHECK_PROMPT;
+    const bounded=AbortSignal.timeout(15000),combined=signal?AbortSignal.any([signal,bounded]):bounded;
+    const v=await requestBillGemini({key,model:"gemini-3.5-flash-lite",maxRequests:1,signal:combined,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:job.mime_type,data:encode(bytes)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
+    const parsed=await parseBillGeminiResponse(v.response,{signal:combined});
+    evidence=displayEvidence(job.raw,job.field,parsed);state=evidence?"verified":"needs_review";
+   }
+  }
  }catch(error){
-  // Store caps retry count and backoff. Never resend or enqueue a financial action.
   const msg=String(error?.message||"");
-  const state=/^gemini_http_(400|401|403|404|429)$/.test(msg)?"needs_review":"retry";
-  await finish(state);return {state,ledger_written:false};
+  state=/^gemini_http_(400|401|403|404|429)$/.test(msg)?"needs_review":"retry";
  }
+ const saved=await store.finish(job,{state,evidence});
+ return {state:typeof saved==="string"?saved:state,ledger_written:false};
 }
