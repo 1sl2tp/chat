@@ -2,6 +2,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 MIG=(ROOT/'supabase/migrations/20261020072000_bank181_admin_web_push_outbox.sql').read_text()
 EDGE=(ROOT/'supabase/functions/v21-admin-push/index.ts').read_text()
+FENCED=(ROOT/'labs/delivery-ack-root-01/push-fenced-candidate.sql').read_text()
 SW=(ROOT/'sw.js').read_text()
 CONTROLLER=(ROOT/'admin-push-controller.js').read_text()
 DASH=(ROOT/'bank-report-dashboard.js').read_text()
@@ -24,11 +25,20 @@ def test_bank_push_fail_closed_and_transactional():
     assert "ALTER TABLE public.chat_bank_admin_push_outbox ENABLE ROW LEVEL SECURITY" in MIG
 
 def test_edge_sends_from_canonical_outbox_without_chat_message():
-    for token in ("chat_bank_admin_push_claim","chat_bank_admin_push_result",
+    for token in ('claimOne("bank_admin")','beginAttempt("bank_admin",claim)','finishAttempt("bank_admin",claim',
         "buildBankNotificationPayload","isTestCustomer","validNotice","validLink",
         "alreadyLinked","bank_claimed","deliverToSubscriptions"):
         assert token in EDGE, token
-    assert "obsolete_event" in EDGE
+    # The new service-only fenced RPC claims the same canonical outbox.
+    assert "public.chat_bank_admin_push_claim(" in FENCED
+    assert "update public.chat_bank_admin_push_outbox" in FENCED
+    assert 'admin.rpc("chat_bank_admin_push_result"' not in EDGE
+    assert 'admin.rpc("v21_push_finish_fenced"' in EDGE
+    assert 'if(!billRecognized)terminal=true' in EDGE
+    assert 'if(!terminal)' in EDGE
+    assert 'dispatched&&transientError?"unknown"' in EDGE
+    assert 'grant execute on function public.v21_push_finish_fenced' in FENCED
+    assert 'to service_role' in FENCED
     assert "v21_bank_admin_push_claim" not in EDGE
     assert "from(\"v21_messages\").insert" not in EDGE
 

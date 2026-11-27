@@ -1,0 +1,29 @@
+name: DELIVERY-ACK-ROOT-01 Push fixture
+on:
+  pull_request:
+    paths:
+      - 'labs/delivery-ack-root-01/**'
+      - '.github/workflows/delivery-ack-root-01.yml'
+permissions:
+  contents: read
+jobs:
+  push-fixture:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: fixture
+          POSTGRES_DB: push_fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: fixture
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql -h localhost -U postgres -d push_fixture -v ON_ERROR_STOP=1 -f labs/delivery-ack-root-01/push-attempt.test.sql
