@@ -49,7 +49,7 @@ export function displayEvidence(raw,field,second){
  if(!before.transfer_content&&after.transfer_content)result.memo=after.transfer_content;
  return Object.keys(result).length?result:null;
 }
-export async function runDeferred({store,download,digest,encode,key,fetchFn=fetch,signal}){
+export async function runDeferred({store,download,digest,encode,key,fetchFn=fetch,signal,makeRegionCache}){
  const job=await store.claim();if(!job)return {state:"idle",ledger_written:false};
  // Compute once. Persist once; ambiguous persistence is resolved by lease expiry,
  // not a second finish call with a different state.
@@ -66,11 +66,15 @@ export async function runDeferred({store,download,digest,encode,key,fetchFn=fetc
     const locate=job.field==="account"&&canLocateAccountRegion(bytes,mime,job.raw.recipient_account_region);
     const bounded=AbortSignal.timeout(locate?30000:15000),combined=signal?AbortSignal.any([signal,bounded]):bounded;
     const trace=event=>console.info("bank_account_crop_trace",JSON.stringify(event));
-    const imageParts=job.field==="account"?(locate?await prepareLocatedAccountParts({bytes,mime,stored:job.raw.recipient_account_region,encode,key,fetchFn,signal:combined,trace}):await accountImageParts({bytes,mime,region:job.raw.recipient_account_region,encode,signal:combined,trace})):[{inlineData:{mimeType:mime,data:encode(bytes)}}];
+    const cache=locate?makeRegionCache?.(job,trace):null;
+    let usedRegion=null,cacheHit=false;
+    const imageParts=job.field==="account"?(locate?await prepareLocatedAccountParts({bytes,mime,stored:job.raw.recipient_account_region,encode,key,fetchFn,signal:combined,trace,cache,onCropRegion:(region,hit)=>{usedRegion=region;cacheHit=hit;}}):await accountImageParts({bytes,mime,region:job.raw.recipient_account_region,encode,signal:combined,trace})):[{inlineData:{mimeType:mime,data:encode(bytes)}}];
     const readDeadline=AbortSignal.any([combined,AbortSignal.timeout(15000)]);
     const v=await requestBillGemini({key,model:disagreement?BILL_OCR_FALLBACK_MODEL:"gemini-3.5-flash-lite",maxRequests:1,signal:readDeadline,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},...imageParts]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
     const parsed=await parseBillGeminiResponse(v.response,{signal:readDeadline});
     evidence=displayEvidence(job.raw,job.field,parsed);state=evidence?"verified":"needs_review";
+    if(evidence&&usedRegion&&!cacheHit&&!combined.aborted)await cache?.put(usedRegion);
+    if(!evidence&&cacheHit&&!combined.aborted)await cache?.remove();
    }
   }
  }catch(error){
