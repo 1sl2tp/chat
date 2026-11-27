@@ -75,7 +75,9 @@ for(const bad of [{...second,clear:false},{...second,reverse_digits:[]},{...seco
 assert.equal(needsAccountDigitRecheck({...first,recipient_account_visible:"2901181999999"}),false);
 assert.equal(needsAccountDigitRecheck({...first,image_type:"not_transfer_receipt"}),false);
 assert.equal(ACCOUNT_DIGIT_RECHECK_PROMPT.includes("2901181999999"),false);
-assert(worker.includes("vision.modelRequestCount<BILL_OCR_MAX_MODEL_REQUESTS"));
+assert(worker.includes("focusedReadBudget({started:ocrStarted,now:Date.now(),requests:modelRequests,signal:ctl.signal}).allowed"));
+assert.equal((worker.match(/maxRequests:1/g)||[]).length,2);
+assert(fall.includes("requests<BILL_OCR_MAX_MODEL_REQUESTS"));
 assert(worker.includes("account_digit_recheck:accountDigitRecheck"));
 
 assert(worker.includes("maxOutputTokens:2048"));

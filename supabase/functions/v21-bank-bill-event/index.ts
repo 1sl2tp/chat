@@ -8,7 +8,8 @@ import {compareBillTransferIdentity} from "./bill-transfer-identity.mjs";
 import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
 import {recoverStoredNoClockBankCredit} from "./bill-no-clock-worker.mjs";
 import {sendMissingClockCustomerReconciliation} from "./bill-no-clock-customer-notice.mjs";
-import {requestParsedBillGemini,requestBillGemini,parseBillGeminiResponse,BILL_OCR_FALLBACK_MODEL,BILL_OCR_MAX_MODEL_REQUESTS} from "./bill-gemini-failover.mjs";
+import {requestParsedBillGemini,requestBillGemini,parseBillGeminiResponse,BILL_OCR_FALLBACK_MODEL,BILL_OCR_MAX_MODEL_REQUESTS,focusedReadBudget} from "./bill-gemini-failover.mjs";
+import {runFocusedTick} from "./bill-focused-tick.mjs";
 import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
 import {isRetryableBillScanReason,describeBillDecision} from "./bill-decision-policy.mjs";
 
@@ -173,7 +174,14 @@ Deno.serve(async req=>{
  const {data:cfgRaw,error:cfgError}=await db.rpc("chat_customer_summary_runtime_config");
  const cfg=Array.isArray(cfgRaw)?cfgRaw[0]:cfgRaw;
  if(cfgError||!cfg?.scan_key||req.headers.get("x-internal-dispatch-key")!==cfg.scan_key)return response({error:"not_authorized"},403);
- const body=await req.json().catch(()=>({}));const asset=String(body.asset_id||"").toLowerCase();
+ const body=await req.json().catch(()=>({}));
+ if(body.action==="focused_reread"){
+   // Separate display-only path. Disabled by default, never falls into collection.
+   if(Deno.env.get("BANK_FOCUSED_REREAD_ENABLED")!=="true")return response({error:"focused_reread_disabled"},503);
+   try{return response(await runFocusedTick({db,key:Deno.env.get("GEMINI_API_KEY")||"",digest:sha256,signal:AbortSignal.timeout(45000)}));}
+   catch{return response({error:"focused_reread_failed",ledger_written:false},502);}
+ }
+ const asset=String(body.asset_id||"").toLowerCase();
  const recheckBankCredit=body.recheck_bank_credit===true;
  if(!HEX.test(asset))return response({error:"asset_id_invalid"},400);
  const {data:job,error:jobError}=await db.from("chat_bank_bill_receipts").select("id,status,reason,scanned_at,customer_account_id,sent_at,attempt_count").eq("media_asset_id",asset).maybeSingle();
@@ -615,7 +623,7 @@ Deno.serve(async req=>{
      "Các trường khác vẫn phải đọc/kiểm tra đúng, trả nguyên JSON ban đầu."
    ].join("\n"):"";
    const prompt=buildBillVisionPrompt(SYSTEM_PROMPT,TEN_FIELD_BILL_GUIDANCE,executionDateGuide);
-   const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
+   const ocrStarted=Date.now();const ctl=new AbortController();const timeout=setTimeout(()=>ctl.abort(),30000);
    let usedModel=model;
    let parsed:any;
    let accountDigitRecheck:any=null;
@@ -637,10 +645,10 @@ Deno.serve(async req=>{
      // One focused read, same original pixels and total request/time ceiling.
      // No financial action uses this separate display-only evidence.
      if(needsAccountDigitRecheck(parsed))accountDigitRecheckState='budget_exhausted';
-     if(needsAccountDigitRecheck(parsed)&&vision.modelRequestCount<BILL_OCR_MAX_MODEL_REQUESTS&&!ctl.signal.aborted){
+     if(needsAccountDigitRecheck(parsed)&&focusedReadBudget({started:ocrStarted,now:Date.now(),requests:modelRequests,signal:ctl.signal}).allowed){
        try{
          modelRequests++;
-         const focused=await requestBillGemini({key:geminiKey,model:BILL_OCR_FALLBACK_MODEL,
+         const focused=await requestBillGemini({key:geminiKey,model,maxRequests:1,
            payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
              generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:2048}},
            signal:ctl.signal});
@@ -650,10 +658,10 @@ Deno.serve(async req=>{
        }catch(e){ const msg=String((e as Error)?.message||"");accountDigitRecheckState=ctl.signal.aborted?"timeout":msg==="gemini_invalid_json"?"invalid_json":/^gemini_http_\d{3}$/.test(msg)?msg:"request_failed"; }
      }
      if(needsSmallTextRecheck(parsed))smallTextRecheckState='budget_exhausted';
-     if(needsSmallTextRecheck(parsed)&&modelRequests<BILL_OCR_MAX_MODEL_REQUESTS&&!ctl.signal.aborted){
+     if(needsSmallTextRecheck(parsed)&&focusedReadBudget({started:ocrStarted,now:Date.now(),requests:modelRequests,signal:ctl.signal}).allowed){
        try{
          modelRequests++;
-         const focused=await requestBillGemini({key:geminiKey,model:BILL_OCR_FALLBACK_MODEL,
+         const focused=await requestBillGemini({key:geminiKey,model,maxRequests:1,
            payload:{contents:[{role:"user",parts:[{text:SMALL_TEXT_RECHECK_PROMPT},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
              generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1024}},signal:ctl.signal});
          const second=await parseBillGeminiResponse(focused.response,{signal:ctl.signal});
