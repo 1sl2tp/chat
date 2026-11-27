@@ -203,10 +203,22 @@ export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYP
   return event;
 }
 
+// Bounded, category-only diagnostic: no payload, phone, ID, content, or token.
+export function missedCallTrace(raw,event,{userThreadType=USER_THREAD_TYPE,groupThreadType=GROUP_THREAD_TYPE}={}){
+  const msgType=String(raw?.data?.msgType||'').trim().toLowerCase();
+  const action=String(objectValue(raw?.data?.content)?.action||'').trim().toLowerCase();
+  if(!action.includes('misscall'))return null;
+  const thread=raw?.type===userThreadType?'user':raw?.type===groupThreadType?'group':'other';
+  const kind=action==='recommened.misscall'?'known':'unknown';
+  return {thread,kind,source:msgType==='chat.recommended'?'recommended':'other',self:Boolean(raw?.isSelf),typed:event?.eventKind==='missed_call',normalized:Boolean(event)};
+}
+
 export function bindIncomingMessageListener({api,onMessage,logger=console,userThreadType=USER_THREAD_TYPE,groupThreadType=GROUP_THREAD_TYPE}){
   if(!api?.listener?.on||typeof onMessage!=='function')return ()=>{};
   const handler=async raw=>{
     const event=normalizeIncomingMessage(raw,{userThreadType,groupThreadType});
+    const trace=missedCallTrace(raw,event,{userThreadType,groupThreadType});
+    if(trace)logger?.info?.('[callback-01] source',JSON.stringify(trace));
     if(!event)return;
     try{await onMessage(event);}
     catch(error){logger?.warn?.('[zalo-incoming] handler failed',String(error?.message||error));}
