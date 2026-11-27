@@ -27,15 +27,16 @@ export async function runDeferred({store,download,digest,encode,key,fetchFn=fetc
  // Compute once. Persist once; ambiguous persistence is resolved by lease expiry,
  // not a second finish call with a different state.
  let state="retry",evidence=null;
+ const mime=job.mime_type==="image/jpg"?"image/jpeg":job.mime_type;
  try{
-  if(!deferredFields(job.raw).includes(job.field)||!(/^[a-f0-9]{64}$/.test(job.image_sha256))||!["image/png","image/jpeg","image/webp"].includes(job.mime_type))state="stale";
+  if(!deferredFields(job.raw).includes(job.field)||!(/^[a-f0-9]{64}$/.test(job.image_sha256))||!["image/png","image/jpeg","image/webp"].includes(mime))state="stale";
   else{
    const bytes=await download(job.storage_key,signal);
    if(!(bytes instanceof Uint8Array)||bytes.length<1||bytes.length>6_000_000||await digest(bytes)!==job.image_sha256)state="stale";
    else{
     const prompt=job.field==="account"?ACCOUNT_DIGIT_RECHECK_PROMPT:SMALL_TEXT_RECHECK_PROMPT;
     const bounded=AbortSignal.timeout(15000),combined=signal?AbortSignal.any([signal,bounded]):bounded;
-    const v=await requestBillGemini({key,model:"gemini-3.5-flash-lite",maxRequests:1,signal:combined,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:job.mime_type,data:encode(bytes)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
+    const v=await requestBillGemini({key,model:"gemini-3.5-flash-lite",maxRequests:1,signal:combined,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:mime,data:encode(bytes)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
     const parsed=await parseBillGeminiResponse(v.response,{signal:combined});
     evidence=displayEvidence(job.raw,job.field,parsed);state=evidence?"verified":"needs_review";
    }

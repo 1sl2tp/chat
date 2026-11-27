@@ -10,3 +10,5 @@ Dispatcher candidate: existing production job chat-bank-transient-bill-retry-5m 
 
 
 Activation candidate: deployed v69 (exact #431 merged bundle, 11 other modules identical), queue/dispatch/projection SQL deployed with no receipt changes; #432 and 0v #277 merged green. No cron/AI read yet. Edge env toggle not configurable with available connector; replace with private database control default off. Pilot requires explicit receipt allowlist AND ledger link; auto scope forward-only cutover. Seed/claim/dispatch independently gated, browser cannot change control. Isolated tests. Production activation, exact-head Edge deployment and scoped before/after ledger verification still required. Seven technical failures now, six settled; no unlinked pilot item. No keyboard or HTML changes.
+
+PILOT v70: actual image/jpg asset failed preflight as stale despite valid current raw/hash; normalize only exact legacy alias to image/jpeg before existing allowlist, preserve digest and attempt cap. No production deploy before CI.
