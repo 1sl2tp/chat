@@ -1,3 +1,4 @@
+import {normalizeBillImageMime} from "./bill-image-identity.mjs";
 // Original image crop for display-only account reread. Never infer missing digits.
 // BBox uses [ymin,xmin,ymax,xmax] on the original encoded image (0..1000).
 export function normalizeAccountRegion(region){
@@ -101,7 +102,7 @@ export async function probeJpegCodec(bytes,{loadCodec=jpegCodec,signal}={}){
 export async function buildAccountCrop(bytes,mime,region,{loadCodec=jpegCodec,signal,trace=()=>{}}={}){
  const fail=reason=>{trace({stage:"crop",reason});return null;};
  if(signal?.aborted)return fail("aborted");
- if(!["image/jpeg","image/jpg"].includes(mime))return fail("unsupported_mime");
+ if(normalizeBillImageMime(mime)!=="image/jpeg")return fail("unsupported_mime");
  const info=inspectJpeg(bytes);
  if(info.reason!=="eligible")return fail(info.reason);
  if(!normalizeAccountRegion(region))return fail("region_missing_or_invalid");
@@ -120,7 +121,7 @@ export async function buildAccountCrop(bytes,mime,region,{loadCodec=jpegCodec,si
  return {bytes:encoded,mime:"image/jpeg",scale:crop.scale};
 }
 export async function accountImageParts({bytes,mime,region,encode,signal,loadCodec,trace}){
- const parts=[{inlineData:{mimeType:mime==="image/jpg"?"image/jpeg":mime,data:encode(bytes)}}];
+ const parts=[{inlineData:{mimeType:normalizeBillImageMime(mime),data:encode(bytes)}}];
  const crop=await buildAccountCrop(bytes,mime,region,{signal,loadCodec,trace});
  if(crop)parts.push({text:"Ảnh thứ hai là vùng phóng to từ ảnh thứ nhất, chỉ dùng để kiểm tra từng nét số. Xác minh nhãn và vai trò người nhận trên ảnh thứ nhất; nếu hai ảnh hoặc vị trí không khớp, clear=false."},{inlineData:{mimeType:crop.mime,data:encode(crop.bytes)}});
  return parts;

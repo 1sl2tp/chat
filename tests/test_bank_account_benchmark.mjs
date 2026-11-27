@@ -3,7 +3,7 @@ import {benchmarkProof,runAccountBenchmark} from "../supabase/functions/v21-bank
 const full="2901181999999",digits=[...full],proof={role:"recipient_account",clear:true,visible:full,digits,reverse_digits:[...digits].reverse(),digit_count:13,trailing_nines:6};
 assert.equal(benchmarkProof(proof),true);
 for(const bad of [{...proof,clear:false},{...proof,visible:full.slice(1)},{...proof,role:"sender_account"},{...proof,reverse_digits:digits},{...proof,digit_count:12}])assert.equal(benchmarkProof(bad),false);
-const bytes=new Uint8Array([1,2,3]),job={id:"fixture",lease_id:"lease",image_sha256:"a".repeat(64),storage_key:"test.png",mime_type:"image/png",region:null};
+const bytes=new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1]),job={id:"fixture",lease_id:"lease",image_sha256:"a".repeat(64),storage_key:"test.png",mime_type:"image/png",region:null};
 let calls=0,saved=null;
 const db={rpc:async(n,args)=>{if(n==="v0_bill_crop_benchmark_claim")return {data:job};assert.equal(n,"v0_bill_crop_benchmark_finish");saved=args;return {data:args.p_state}},storage:{from:b=>{assert.equal(b,"v21-media");return {download:async p=>{assert.equal(p,"test.png");return {data:new Blob([bytes])}}}}}};
 const fetchFn=async(url,opts)=>{calls++;assert(!opts.body.includes(full));return {ok:true,status:200,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(proof)}]}}]})}};

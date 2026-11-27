@@ -4,6 +4,20 @@
 // response body read, and these short delays. DB cron retains longer backoff.
 export const BILL_OCR_FALLBACK_MODEL="gemini-3.5-flash";
 export const BILL_OCR_MAX_MODEL_REQUESTS=3;
+// Safe taxonomy: no provider body, exception message, account or image in logs.
+export function visionTransportReason(error,signal){
+  if(signal?.aborted){
+    const reason=signal.reason;
+    return reason?.name==="TimeoutError"?"timeout":"aborted";
+  }
+  if(error?.name==="TimeoutError")return "timeout";
+  if(error?.name==="AbortError"||error?.message==="AbortError")return "aborted";
+  const m=String(error?.message||"");
+  if(/^gemini_http_[1-5][0-9]{2}$/.test(m))return m;
+  if(m==="gemini_invalid_json")return "invalid_json";
+  if(m==="gemini_key_missing")return "missing_key";
+  return "network";
+}
 const TRANSIENT_CAPACITY=new Set([502,503,504]);
 
 export async function requestBillGemini({
@@ -30,7 +44,7 @@ export async function requestBillGemini({
       return res;
     }catch(e){
       logFn("bank_bill_gemini_transport_error",{stage,model:selected,
-        error_type:e?.name==="AbortError"?"abort":"network"});
+        error_type:visionTransportReason(e,signal),elapsed_ms:Math.max(0,Date.now()-started)});
       throw e;
     }
   };

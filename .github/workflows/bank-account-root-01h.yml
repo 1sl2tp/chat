@@ -1,0 +1,39 @@
+name: BANK-ACCOUNT-ROOT-01h H1-H2
+on:
+  pull_request:
+    branches: [docs/bank-account-root-01h]
+permissions:
+  contents: read
+jobs:
+  source-fixture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/test_bank_root_01h_mime.mjs
+      - run: node tests/test_bank_account_root_01g.mjs
+      - run: node tests/test_bank303_gemini_invalid_json_recovery_20261112.mjs
+      - run: node tests/test_bank_account_benchmark.mjs
+      - run: node tests/test_bank_deferred_reread.mjs
+  isolated-sql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: fixture
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/queue-test.sql
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/dispatch-test.sql
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/activation-test.sql
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/account-benchmark-test.sql
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/account-region-cache-test.sql
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/account-root-01g-test.sql
+
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f supabase/functions/v21-bank-bill-event/extra-ai-permit-candidate.sql
+      - run: bash fixtures/bill-focused-reread/account-root-01h-race.sh

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {deferredFields,displayEvidence,runDeferred,clockOnlyEligible,CLOCK_ONLY_PROMPT} from "../supabase/functions/v21-bank-bill-event/bill-deferred-reread.mjs";
+import {deferredFields,displayEvidence,runDeferred,clockOnlyEligible,CLOCK_ONLY_PROMPT,focusedReadDeadline} from "../supabase/functions/v21-bank-bill-event/bill-deferred-reread.mjs";
 const raw={image_type:"successful_transfer_receipt",transfer_success_visible:true,transaction_selection:"single_detail",transaction_nature:"transfer",recipient_account_visible:"290118199999",account_digit_recheck_state:"timeout"};
 const full="2901181999999",digits=[...full],proof={role:"recipient_account",clear:true,visible:full,digits,reverse_digits:[...digits].reverse(),digit_count:13,trailing_nines:6};
 assert.deepEqual(deferredFields(raw),["account"]);
@@ -7,7 +7,7 @@ assert.equal(displayEvidence(raw,"account",proof).account.second_visible,full);
 assert.equal(displayEvidence(raw,"account",{...proof,clear:false}),null);
 const job={raw,field:"account",image_sha256:"a".repeat(64),storage_key:"fixture",mime_type:"image/png"};
 let calls=0,done=[];
-const run=(digest,fetchFn)=>runDeferred({store:{claim:async()=>job,finish:async(j,v)=>done.push(v)},download:async()=>new Uint8Array([1]),digest:async()=>digest,encode:()=>"AQ==",key:"fixture",fetchFn});
+const run=(digest,fetchFn)=>runDeferred({store:{claim:async()=>job,finish:async(j,v)=>done.push(v)},download:async()=>job.mime_type==="image/png"?new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1]):new Uint8Array([255,216,255,224]),digest:async()=>digest,encode:()=>"AQ==",key:"fixture",fetchFn});
 assert.equal((await run("b".repeat(64),async()=>{throw Error("must not call")})).state,"stale");
 assert.equal((await run(job.image_sha256,async()=>{calls++;return{ok:true,status:200,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(proof)}]}}]})}})).state,"verified");
 assert.equal(calls,1);
@@ -58,3 +58,65 @@ assert.equal(done.at(-1).evidence.account.second_visible,full);
 assert.equal((await run(job.image_sha256,async()=>{mismatchCalls++;return modelResponse({...proof,reverse_digits:digits})})).state,"needs_review");
 assert.equal(done.at(-1).evidence,null);assert.equal(mismatchCalls,2);
 console.log("Disagreement recovery uses alternate vision, strict proof and one request per claim.");
+
+// An OCR disagreement must not repeatedly use the same unverified box or cache.
+// This header-only fixture deliberately makes the locator decline the region,
+// so the bounded fallback can be tested without image codecs or real AI.
+const jpegHeader=new Uint8Array([255,216,255,192,0,8,8,9,132,4,101,1,255,218]);
+const regionHint={role:"recipient_account",box:[374,454,389,632]};
+let relocalCalls=0,cacheCalls=0,finishCount=0;
+const relocalJob={...job,mime_type:"image/jpeg",raw:{...disagreeRaw,recipient_account_region:regionHint},field:"account"};
+const relocalResult=await runDeferred({
+ store:{claim:async()=>relocalJob,finish:async(j,v)=>{finishCount++;assert.equal(v.state,"needs_review");assert.equal(v.evidence,null);}},
+ download:async()=>jpegHeader,digest:async()=>relocalJob.image_sha256,encode:()=>"fixture",
+ key:"fixture",makeRegionCache:()=>{cacheCalls++;throw Error("must not reuse cache after disagreement");},
+ fetchFn:async(url,opts)=>{
+   relocalCalls++;
+   const payload=JSON.parse(opts.body);
+   assert(!opts.body.includes(full));
+   if(relocalCalls===1){
+    assert(payload.generationConfig.responseJsonSchema);
+    return modelResponse({role:"unknown",box:[]});
+   }
+   assert.equal(relocalCalls,2);assert.ok(url.endsWith("/models/gemini-3.5-flash:generateContent"));
+   assert.equal(payload.contents[0].parts.length,2);
+   return modelResponse({...proof,reverse_digits:digits});
+ }
+});
+assert.equal(relocalResult.state,"needs_review");assert.equal(relocalResult.ledger_written,false);
+assert.equal(relocalCalls,2);assert.equal(cacheCalls,0);assert.equal(finishCount,1);
+console.log("Disagreement re-localizes without unverified hint/cache, bounded original fallback.");
+
+// H5: diagnose a timed-out read without another provider request, preserve the
+// parent cap and distinguish transport, parse and evidence rejection.
+const parent=new AbortController();
+assert.equal(focusedReadDeadline(parent.signal,{disagreement:true,locate:true}),parent.signal);
+assert.notEqual(focusedReadDeadline(parent.signal,{disagreement:false,locate:true}),parent.signal);
+assert.notEqual(focusedReadDeadline(parent.signal,{disagreement:true,locate:false}),parent.signal);
+const diagnostics=[];
+const diagnose=async(fetchFn)=>{
+ diagnostics.length=0;let finishes=0,requests=0;
+ const j={...relocalJob,raw:disagreeRaw,mime_type:"image/png"};
+ const res=await runDeferred({store:{claim:async()=>j,finish:async(_j,v)=>{finishes++;return v.state}},
+ download:async()=>new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1]),digest:async()=>j.image_sha256,encode:()=>"fixture",
+ key:"fixture",fetchFn:async(...args)=>{requests++;return fetchFn(...args)},logFn:(name,fields)=>diagnostics.push({name,...fields})});
+ assert.equal(finishes,1);assert.equal(requests,1);assert.equal(res.ledger_written,false);
+ assert(!JSON.stringify(diagnostics).includes(full));
+ return res.state;
+};
+const hasStage=(stage,reason)=>diagnostics.some(d=>d.name==="bank_focused_stage"&&d.stage===stage&&d.reason===reason);
+assert.equal(await diagnose(async()=>{throw new DOMException("provider deadline","TimeoutError")}),"retry");
+assert(hasStage("read_transport","timeout"));
+assert(diagnostics.some(d=>d.name==="bank_bill_gemini_transport_error"&&d.error_type==="timeout"&&typeof d.elapsed_ms==="number"));
+assert.equal(await diagnose(async()=>{throw Error("private payload must not be logged")}),"retry");
+assert(hasStage("read_transport","network"));
+assert(!JSON.stringify(diagnostics).includes("private payload"));
+assert.equal(await diagnose(async()=>modelResponse(null)),"retry");
+assert(hasStage("read_parse","invalid_json"));
+assert.equal(await diagnose(async()=>modelResponse({...proof,reverse_digits:digits})),"needs_review");
+assert(hasStage("evidence","proof_mismatch"));
+assert.equal(await diagnose(async()=>modelResponse(proof)),"verified");
+assert(hasStage("evidence","verified"));
+assert.equal(await diagnose(async()=>({ok:false,status:429})),"needs_review");
+assert(hasStage("read_transport","gemini_http_429"));
+console.log("H5 stage diagnostics: parent cap, timeout/network, JSON, proof, quota, no sensitive output passed.");

@@ -1,3 +1,4 @@
+import {normalizeBillImageMime,validateBillImageMime} from "./bill-image-identity.mjs";
 // Internal pilot diagnostic: metadata only, no AI, no financial writes.
 // Bound to the already settled Nov 27 cohort. Never return original bytes or paths.
 import {classifyAccountReadAnomaly} from "./bill-amount-rules.mjs";
@@ -17,12 +18,13 @@ export async function inspectAccountCohort({db,digest,signal}){
    const {data:file,error:downloadError}=await db.storage.from("v21-media").download(a.storage_key);
    if(downloadError||!file||file.size<1||file.size>6_000_000||signal?.aborted)throw Error("storage_unavailable");
    const bytes=new Uint8Array(await file.arrayBuffer());
+   if(!validateBillImageMime(bytes,a.mime_type))throw Error("invalid_image_mime");
    if(await digest(bytes)!==r.image_sha256)throw Error("hash_mismatch");
    const metadata=inspectJpeg(bytes);
    // Prior version rejected every EXIF segment, even orientation=1.
    const codec=await probeJpegCodec(bytes,{signal});
    results.push({...item,mime:a.mime_type,...metadata,codec,legacy_header_eligible:metadata.reason==="eligible"&&!metadata.exif});
-  }catch(e){results.push({...item,reason:["asset_unavailable","storage_unavailable","hash_mismatch"].includes(e?.message)?e.message:"diagnostic_failed"});}
+  }catch(e){results.push({...item,reason:["asset_unavailable","storage_unavailable","hash_mismatch","invalid_image_mime"].includes(e?.message)?e.message:"diagnostic_failed"});}
  }
  return {state:results.length===14?"complete":"partial",results,ledger_written:false};
 }

@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
+import {normalizeBillImageMime,validateBillImageMime} from "./bill-image-identity.mjs";
 import {BILL_READER_VERSION,buildBillVisionPrompt,normalizeVisionMemo} from "./bill-vision-reader.mjs";
 import {RULE_VERSION,SYSTEM_PROMPT,validateVisionRead,readV4Fields,requiredAutoCollectEvidence,revalidateAuditedAccountRead,classifyBillRecognition,TEN_FIELD_BILL_GUIDANCE,BILL_LITERAL_MEMO_OCR_GUIDANCE,buildStoredBillTenFields,ACCOUNT_DIGIT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,sanitizeJournalRecipientFields,SMALL_TEXT_RECHECK_PROMPT,needsSmallTextRecheck,recoverSmallText} from "./bill-amount-rules.mjs";
 import {previewBillSmsMatch,readIncomingAgribankSms} from "./bill-sms-preview.mjs";
@@ -569,6 +570,8 @@ Deno.serve(async req=>{
    const bytes=new Uint8Array(await file.arrayBuffer());
    if(bytes.length<MIN_BYTES||bytes.length>MAX_BYTES)throw new Error("actual_image_size_invalid");
    digest=await sha256(bytes);
+   const imageMime=validateBillImageMime(bytes,media.mime_type);
+   if(!imageMime)throw new Error("invalid_image_mime");
    // Global PRIMARY KEY is an atomic single-scan reservation. One byte-identical
    // image can be owned by only one first receipt, regardless of customer.
    const {data:inserted,error:insertError}=await db.from("chat_bank_bill_image_hashes").insert({
@@ -646,7 +649,7 @@ Deno.serve(async req=>{
      // under the same 30-second deadline, before DB retry fallback.
      const vision=await requestParsedBillGemini({
        key:geminiKey,model,
-       payload:{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
+       payload:{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:imageMime,data:btoa(b64)}}]}],
          generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1800}},
        signal:ctl.signal
      });
@@ -660,7 +663,7 @@ Deno.serve(async req=>{
      if(needsAccountDigitRecheck(parsed)&&focusedReadBudget({started:ocrStarted,now:Date.now(),requests:modelRequests,signal:ctl.signal}).allowed){
        try{
          modelRequests++;
-         const accountParts=await accountImageParts({bytes,mime:media.mime_type||"image/jpeg",region:accountRegion,signal:ctl.signal,encode:(data:Uint8Array)=>{if(data===bytes)return btoa(b64);let s="";for(let i=0;i<data.length;i+=8192)s+=String.fromCharCode(...data.subarray(i,i+8192));return btoa(s);}});
+         const accountParts=await accountImageParts({bytes,mime:imageMime,region:accountRegion,signal:ctl.signal,encode:(data:Uint8Array)=>{if(data===bytes)return btoa(b64);let s="";for(let i=0;i<data.length;i+=8192)s+=String.fromCharCode(...data.subarray(i,i+8192));return btoa(s);}});
          const focused=await requestBillGemini({key:geminiKey,model,maxRequests:1,
            payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},...accountParts]}],
              generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:2048}},
@@ -675,7 +678,7 @@ Deno.serve(async req=>{
        try{
          modelRequests++;
          const focused=await requestBillGemini({key:geminiKey,model,maxRequests:1,
-           payload:{contents:[{role:"user",parts:[{text:SMALL_TEXT_RECHECK_PROMPT},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
+           payload:{contents:[{role:"user",parts:[{text:SMALL_TEXT_RECHECK_PROMPT},{inlineData:{mimeType:imageMime,data:btoa(b64)}}]}],
              generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1024}},signal:ctl.signal});
          const second=await parseBillGeminiResponse(focused.response,{signal:ctl.signal});
          const recovered=recoverSmallText(parsed,second);
