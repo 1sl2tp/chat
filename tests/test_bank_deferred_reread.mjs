@@ -35,3 +35,12 @@ job.raw=clockRaw;job.field="small_text";job.mime_type="image/jpeg";
 assert.equal((await run(job.image_sha256,async(url,opts)=>{const body=JSON.parse(opts.body);assert.equal(body.contents[0].parts[0].text,CLOCK_ONLY_PROMPT);assert.equal(body.contents[0].parts[0].text.includes("09:41"),false);return{ok:true,status:200,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(clockProof)}]}}]})}})).state,"verified");
 assert.deepEqual(done.at(-1).evidence,{clock:"09:41"});
 console.log("Clock-only literal region and phone-clock rejection passed.");
+
+for(const flag of ["time_date_conflict","clock_text_conflict","ocr_iso_date_conflict","printed_date_invalid","date_swap_suspected"]){
+ for(const value of [true,"true"]){
+  const conflict={...clockRaw,[flag]:value};
+  assert.equal(clockOnlyEligible(conflict),false);
+  assert.equal(displayEvidence(conflict,"small_text",{time_clear:true,transaction_line:"27/11/2026 09:41"}),null);
+ }
+}
+console.log("Persisted date/clock conflict guards passed.");

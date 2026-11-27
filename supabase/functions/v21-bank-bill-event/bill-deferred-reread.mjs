@@ -12,10 +12,14 @@ export function deferredFields(raw){
 }
 // Display-only clock recovery when date and memo are already present.
 // Never provide the independent bank clock to vision or invent a printed date.
+const clockConflictKeys=["time_date_conflict","clock_text_conflict","ocr_iso_date_conflict","printed_date_invalid","date_swap_suspected"];
+function hasClockConflict(raw,fields){
+ return clockConflictKeys.some(k=>[raw?.[k],fields?.[k]].some(v=>v!==undefined&&v!==null&&v!==false&&v!=="false"));
+}
 export function clockOnlyEligible(raw){
  const f=readV4Fields(raw);
  return needsSmallTextRecheck(raw)&&!!f.transfer_date_printed_vn&&!!f.transfer_date_vn&&!!f.transfer_content&&!f.transfer_time_printed_vn&&
- !f.time_date_conflict&&!f.clock_text_conflict&&!f.ocr_iso_date_conflict&&raw.printed_date_invalid!==true&&raw.date_swap_suspected!==true;
+ !hasClockConflict(raw,f);
 }
 export const CLOCK_ONLY_PROMPT=[
  "Chỉ đọc GIỜ giao dịch thực sự in trên ảnh biên lai thành công. Kiểm tra dòng ngay dưới số tiền, ô Ngày giờ/Thời gian giao dịch, hoặc dòng thời gian riêng trong chi tiết giao dịch.",
@@ -38,8 +42,8 @@ export function displayEvidence(raw,field,second){
  if(field!=="small_text")return null;
  if(clockOnlyEligible(raw))return clockOnlyEvidence(raw,second);
  const before=readV4Fields(raw),after=readV4Fields(recoverSmallText(raw,second)),result={};
- if(!before.transfer_date_printed_vn&&after.transfer_date_printed_vn)result.date=after.transfer_date_printed_vn;
- if(!before.transfer_time_printed_vn&&after.transfer_time_printed_vn)result.clock=after.transfer_time_printed_vn;
+ if(!hasClockConflict(raw,before)&&!before.transfer_date_printed_vn&&after.transfer_date_printed_vn)result.date=after.transfer_date_printed_vn;
+ if(!hasClockConflict(raw,before)&&!before.transfer_time_printed_vn&&after.transfer_time_printed_vn)result.clock=after.transfer_time_printed_vn;
  if(!before.transfer_content&&after.transfer_content)result.memo=after.transfer_content;
  return Object.keys(result).length?result:null;
 }
