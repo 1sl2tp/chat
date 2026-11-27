@@ -1,3 +1,4 @@
+import {normalizeBillImageMime} from "./bill-image-identity.mjs";
 // Bounded location-only request. Coordinates are not OCR or financial evidence.
 import {normalizeAccountRegion,safeJpegDimensions,inspectJpeg,regionRect,accountImageParts} from "./bill-account-crop.mjs";
 import {requestBillGemini,parseBillGeminiResponse} from "./bill-gemini-failover.mjs";
@@ -20,12 +21,12 @@ export const ACCOUNT_REGION_PROMPT=[
 ].join("\n");
 export function canLocateAccountRegion(bytes,mime,stored){
  const dim=safeJpegDimensions(bytes);
- return ["image/jpeg","image/jpg"].includes(mime)&&!!dim&&!regionRect(stored,dim.width,dim.height);
+ return normalizeBillImageMime(mime)==="image/jpeg"&&!!dim&&!regionRect(stored,dim.width,dim.height);
 }
 export async function locateAccountRegion({bytes,mime,stored,encode,key,model="gemini-3.5-flash-lite",fetchFn=fetch,signal,trace=()=>{}}){
  const fail=reason=>{trace({stage:"locator",reason});return null;};
  if(signal?.aborted)return fail("aborted");
- if(!["image/jpeg","image/jpg"].includes(mime))return fail("unsupported_mime");
+ if(normalizeBillImageMime(mime)!=="image/jpeg")return fail("unsupported_mime");
  const info=inspectJpeg(bytes),dim=safeJpegDimensions(bytes);
  if(!dim)return fail(info.reason);
  const known=normalizeAccountRegion(stored);
