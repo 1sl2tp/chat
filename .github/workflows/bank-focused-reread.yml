@@ -44,3 +44,5 @@ jobs:
       - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/activation-test.sql
 
       - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/account-benchmark-test.sql
+
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/account-region-cache-test.sql
