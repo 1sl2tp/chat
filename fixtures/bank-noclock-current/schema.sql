@@ -20,7 +20,7 @@ create function public.taphoa_chat_customer_balance_value(uuid) returns numeric 
 create function public.taphoa_bump_revision(text) returns integer language sql as $$select 1$$;
 create function public.taphoa_chat_money(numeric) returns text language sql as $$select $1::text$$;
 create function public.taphoa_chat_balance_label(numeric,boolean) returns text language sql as $$select $1::text$$;
-create function public.taphoa_customer_mini_link(uuid,text,text,text,text,text) returns text language sql as $$select ''::text$$;
+create function public.taphoa_customer_mini_link(uuid,text,text,text,text) returns text language sql as $$select ''::text$$;
 create role fixture_client;
 create role service_role;
 \ir ../../docs/sql/bank-noclock-current-01-candidate.sql

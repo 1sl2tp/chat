@@ -20,14 +20,15 @@ function helper(rpc, warnings = []) {
 }
 
 async function run() {
-  assert.equal((source.match(/await acknowledgePostedCollection\(/g) || []).length, 4,
-    'all four successful OCR/recheck/recovery collections must immediately acknowledge');
+  assert.equal((source.match(/await acknowledgePostedCollection\(/g) || []).length, 5,
+    'all five successful OCR/recheck/recovery collections must immediately acknowledge');
   const direct = [...source.matchAll(/if\(!postError&&posted\?\.ok===true&&posted\?\.status==="received"\)\s*\{\s*await acknowledgePostedCollection\(posted\)/g)];
   assert.equal(direct.length, 2, 'both direct collection returns require ACK');
   assert.match(source,
     /if\(recovery\.posted\)await acknowledgePostedCollection\(recovery\.posted\)/,
     'bank-backed stored no-clock recovery may ACK only after financial RPC success');
   assert.match(source, /if\(receiptPosted\)\s*\{\s*await acknowledgePostedCollection\(receiptPosted\)/);
+  assert.match(source, /if\(recovery\?\.handled&&recovery\.status==="received"&&recovery\.posted\)\s*\{\s*await acknowledgePostedCollection\(recovery\.posted\)/, "fresh no-clock recovery must ACK only after receipt success");
 
   const calls = [];
   const send = helper(async (name, args) => {
