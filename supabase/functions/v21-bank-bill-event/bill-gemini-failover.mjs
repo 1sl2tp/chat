@@ -42,7 +42,7 @@ export async function requestBillGemini({
   // 1) Preferred small/low-cost model.
   const primary=await call(model,"primary");
   if(primary.ok)return{response:primary,usedModel:model,requestCount:1};
-  if(maxRequests<2||!TRANSIENT_CAPACITY.has(primary.status)||model===BILL_OCR_FALLBACK_MODEL)
+  if(!TRANSIENT_CAPACITY.has(primary.status)||model===BILL_OCR_FALLBACK_MODEL||maxRequests<2)
     throw new Error("gemini_http_"+primary.status);
 
   // 2) ONE alternate model, identical payload/key. No retry on invalid
@@ -50,7 +50,8 @@ export async function requestBillGemini({
   await wait(800);
   const backup=await call(BILL_OCR_FALLBACK_MODEL,"alternate");
   if(backup.ok)return{response:backup,usedModel:BILL_OCR_FALLBACK_MODEL,requestCount:2};
-  if(maxRequests<3||!TRANSIENT_CAPACITY.has(backup.status)
+  if(maxRequests<3)throw new Error("gemini_http_"+backup.status);
+  if(!TRANSIENT_CAPACITY.has(backup.status))
     throw new Error("gemini_http_"+backup.status);
 
   // 3) ONE delayed return to the low-cost model, ONLY if both endpoints
