@@ -22,13 +22,13 @@ begin
   output:=output||jsonb_build_array(row_data||jsonb_build_object('attempt_token',token,'family',p_family));
  end loop;
  return output;
-end $;
+end $$;
 -- Atomic fenced completion: unknown never requeues, even after lease expiry.
 -- "not_sent" is only safe when the provider was demonstrably never called/accepted.
 create or replace function v21_private.push_finish_fenced(p_family text,p_id uuid,p_attempt integer,p_token uuid,p_outcome text,p_terminal boolean default false)
 returns boolean language plpgsql security invoker set search_path=''
 as $$
-declare locked_attempt integer; changed integer; next_state text; phase text;
+declare locked_attempt integer; changed integer; next_state text; current_phase text;
 begin
  if p_family not in ('chat','bank_admin') or p_family is null or p_outcome not in ('confirmed','not_sent','unknown') or p_outcome is null then return false; end if;
  if p_family='chat' then
@@ -37,10 +37,10 @@ begin
   select attempt_count into locked_attempt from public.chat_bank_admin_push_outbox where id=p_id and state='processing' for update;
  end if;
  if locked_attempt is distinct from p_attempt then return false; end if;
- select a.phase into phase from v21_private.push_delivery_attempt a
+ select a.phase into current_phase from v21_private.push_delivery_attempt a
  where a.family=p_family and a.outbox_id=p_id and a.attempt_no=p_attempt and a.token=p_token
  and a.lease_until>clock_timestamp() for update;
- if phase is null or (phase<>'dispatching' and not(phase='claimed' and p_outcome='not_sent')) then return false; end if;
+ if current_phase is null or (current_phase<>'dispatching' and not(current_phase='claimed' and p_outcome='not_sent')) then return false; end if;
  if p_outcome='confirmed' then next_state:='sent';
  elsif p_outcome='unknown' then next_state:='processing';
  elsif p_terminal is true or p_attempt>=3 then next_state:='dead';
