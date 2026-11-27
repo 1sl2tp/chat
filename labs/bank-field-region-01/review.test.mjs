@@ -1,0 +1,25 @@
+import {FIELDS,reviewSecondPass,evaluateGoldLabel} from "./reader.mjs";
+
+const clone=x=>JSON.parse(JSON.stringify(x));
+const a={kind:"receipt",selection:"single",direction:"unsigned",fields:Object.fromEntries(FIELDS.map(k=>[k,{state:"missing",literal:null,box:null}]))};
+const clear=x=>({state:"clear",literal:x,box:[10,20,30,90]});
+a.fields.amount=clear("123.456 VNĐ");a.fields.date=clear("27/11/2026");a.fields.time=clear("12:05");a.fields.recipient_account=clear("123456789999");
+const b=clone(a);b.fields.recipient_account=clear("1234567899999");
+const proof=x=>({digits_left_to_right:x.split(""),digits_right_to_left:x.split("").reverse(),visible_count:x.length});
+const p=proof(a.fields.recipient_account.literal),q=proof(b.fields.recipient_account.literal);
+let n=0;const ok=x=>{if(!x)throw Error("assert "+n);n++};
+const r=reviewSecondPass(a,b,p,q,{accountMatch:false,amountMatch:true});
+ok(r.state==="review_proposals");ok(r.first.fields.recipient_account.literal===a.fields.recipient_account.literal);ok(r.proposals.recipient_account.field.literal===b.fields.recipient_account.literal);ok(r.proposals.recipient_account.requires_adjudication);
+ok(reviewSecondPass(a,b,p,null,{accountMatch:false}).issues.recipient_account==="second_digit_disagreement");
+const c=clone(b);c.fields.date=clear("28/11/2026");ok(reviewSecondPass(a,c,p,q,{accountMatch:false}).issues.transaction==="anchor_unconfirmed");
+const d=clone(b);d.selection="ambiguous";ok(reviewSecondPass(a,d,p,q,{accountMatch:false}).issues.transaction==="selection_conflict");
+const e=clone(b);e.fields.recipient_account.box=null;ok(reviewSecondPass(a,e,p,q,{accountMatch:false}).issues.recipient_account==="second_read_unverified");
+ok(reviewSecondPass(a,b,p,q,{accountMatch:true,amountMatch:true}).state==="no_second_needed");
+const hash="a".repeat(64),label={image_sha256:hash,source:"human_reviewed_original",reviewed:true,...clear("123.456 VNĐ")};
+ok(evaluateGoldLabel(label,hash)==="verified_literal_region");
+ok(evaluateGoldLabel({...label,source:"bank"},hash)==="unverified");
+ok(evaluateGoldLabel({...label,reviewed:false},hash)==="unverified");
+ok(evaluateGoldLabel(label,"b".repeat(64))==="unverified");
+ok(evaluateGoldLabel({...label,box:[20,20,10,90]},hash)==="unverified");
+ok(evaluateGoldLabel({...label,state:"missing",literal:null,box:null},hash)==="verified_absence");
+console.log(n+' review/gold assertions passed');
