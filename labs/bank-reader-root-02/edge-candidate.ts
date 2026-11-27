@@ -1,7 +1,7 @@
 // Deployment candidate, NOT a deployed endpoint.
 // Use current user's JWT and Storage RLS. No service-role key, no financial RPC.
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {createReaderHandler} from "./api.mjs";
+import {createReaderHandler,selectAuthorizedImage} from "./api.mjs";
 const url=Deno.env.get("SUPABASE_URL")||"";
 const anon=Deno.env.get("SUPABASE_ANON_KEY")||"";
 const key=Deno.env.get("GEMINI_API_KEY")||"";
@@ -14,14 +14,14 @@ const handler=createReaderHandler({
   if(error||!data.user||data.user.is_anonymous)return null;
   const r=await db.rpc("v0_admin_read",{p_kind:"session",p_conversation_id:null});
   if(r.error||r.data?.role!=="admin"||!r.data?.account_id)return null;
-  return {db};
+  return {db,accountId:r.data.account_id};
  },
  async loadMedia(actor:any,body:any){
   // Caller may supply IDs, never a raw storage key or URL.
   const m=await actor.db.rpc("v0_admin_media",{p_conversation_id:body.conversation_id});
-  if(m.error||!Array.isArray(m.data))return null;
-  const row=m.data.find((r:any)=>r.id===body.asset_id&&r.kind==="image");
-  if(!row||typeof row.storage_key!=="string"||typeof row.mime_type!=="string")return null;
+  if(m.error)return null;
+  const row=selectAuthorizedImage(m.data,actor.accountId,body.asset_id);
+  if(!row)return null;
   const r=await actor.db.storage.from("v21-media").download(row.storage_key);
   if(r.error||!r.data||r.data.size>4000000)return null;
   return {bytes:new Uint8Array(await r.data.arrayBuffer()),mime:row.mime_type};

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {FIELDS,PROMPT,SCHEMA} from "./reader.mjs";
-import {createReaderHandler} from "./api.mjs";
+import {createReaderHandler,selectAuthorizedImage} from "./api.mjs";
 const ids={asset_id:"12345678-1234-1234-1234-123456789abc",conversation_id:"87654321-1234-1234-1234-123456789abc"};
 const bytes=new Uint8Array(100);bytes.set([255,216,255]);
 const raw={kind:"receipt",selection:"single",direction:"unsigned",status:"success",layout:"screenshot",fields:Object.fromEntries(FIELDS.map(k=>[k,{state:"missing",text:null,boxes:[]}])),account_check:null};
@@ -26,4 +26,13 @@ const result=await check({},make(),200,1,1);
 assert.equal(result.requests,1);assert.equal(result.financial_action,false);assert.equal(result.first.fields.time.text,null);assert.equal(result.plan.mode,"full_image");n++;
 const failure=await check({invoke:async()=>{calls++;throw Error()}},make(),502,1,1);assert.equal(failure.requests,1);n++;
 await check({invoke:async()=>{calls++;return {bad:true}}},make(),502,1,1);
+const owner="11111111-1111-1111-1111-111111111111";
+const row={id:ids.asset_id,kind:"image",storage_key:"fixture/image.jpg",mime_type:"image/jpeg"};
+const envelope={account_id:owner,assets:[row]};
+assert.deepEqual(selectAuthorizedImage(envelope,owner,ids.asset_id),{storage_key:row.storage_key,mime_type:row.mime_type});n++;
+for(const bad of [[row],{...envelope,account_id:ids.conversation_id},{...envelope,assets:[]},{...envelope,assets:[row,row]},{...envelope,assets:[{...row,kind:"file"}]},{...envelope,assets:[{...row,storage_key:""}]},{...envelope,assets:[{...row,mime_type:null}]}]){
+ assert.equal(selectAuthorizedImage(bad,owner,ids.asset_id),null);n++;
+}
+assert.equal(selectAuthorizedImage(envelope,owner,ids.conversation_id),null);n++;
+await check({loadMedia:async()=>selectAuthorizedImage({...envelope,account_id:ids.conversation_id},owner,ids.asset_id)},make(),422,0,0);
 console.log("Read-only API: "+n+" scenarios passed");

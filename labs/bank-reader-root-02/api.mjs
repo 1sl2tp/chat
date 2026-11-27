@@ -9,6 +9,15 @@ function mimeOf(bytes){
  if(String.fromCharCode(...bytes.slice(0,4))==="RIFF"&&String.fromCharCode(...bytes.slice(8,12))==="WEBP")return "image/webp";
  return null;
 }
+// The deployed RPC returns an account-bound envelope, not a bare array.
+export function selectAuthorizedImage(envelope,accountId,assetId){
+ if(typeof accountId!=="string"||!uuid.test(accountId)||envelope?.account_id!==accountId||!Array.isArray(envelope.assets))return null;
+ const matches=envelope.assets.filter(r=>r?.id===assetId);
+ if(matches.length!==1)return null;
+ const row=matches[0];
+ if(row.kind!=="image"||typeof row.storage_key!=="string"||!row.storage_key||typeof row.mime_type!=="string")return null;
+ return {storage_key:row.storage_key,mime_type:row.mime_type};
+}
 export function createReaderHandler({authorize,loadMedia,reserve,invoke,hash,encode,now=Date.now}){
  return async req=>{
   if(req.method!=="POST")return err("method",405);
