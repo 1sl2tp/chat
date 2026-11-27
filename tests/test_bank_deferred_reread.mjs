@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {deferredFields,displayEvidence,runDeferred,clockOnlyEligible,CLOCK_ONLY_PROMPT} from "../supabase/functions/v21-bank-bill-event/bill-deferred-reread.mjs";
+import {deferredFields,displayEvidence,runDeferred,clockOnlyEligible,CLOCK_ONLY_PROMPT,focusedReadDeadline} from "../supabase/functions/v21-bank-bill-event/bill-deferred-reread.mjs";
 const raw={image_type:"successful_transfer_receipt",transfer_success_visible:true,transaction_selection:"single_detail",transaction_nature:"transfer",recipient_account_visible:"290118199999",account_digit_recheck_state:"timeout"};
 const full="2901181999999",digits=[...full],proof={role:"recipient_account",clear:true,visible:full,digits,reverse_digits:[...digits].reverse(),digit_count:13,trailing_nines:6};
 assert.deepEqual(deferredFields(raw),["account"]);
@@ -86,3 +86,37 @@ const relocalResult=await runDeferred({
 assert.equal(relocalResult.state,"needs_review");assert.equal(relocalResult.ledger_written,false);
 assert.equal(relocalCalls,2);assert.equal(cacheCalls,0);assert.equal(finishCount,1);
 console.log("Disagreement re-localizes without unverified hint/cache, bounded original fallback.");
+
+// H5: diagnose a timed-out read without another provider request, preserve the
+// parent cap and distinguish transport, parse and evidence rejection.
+const parent=new AbortController();
+assert.equal(focusedReadDeadline(parent.signal,{disagreement:true,locate:true}),parent.signal);
+assert.notEqual(focusedReadDeadline(parent.signal,{disagreement:false,locate:true}),parent.signal);
+assert.notEqual(focusedReadDeadline(parent.signal,{disagreement:true,locate:false}),parent.signal);
+const diagnostics=[];
+const diagnose=async(fetchFn)=>{
+ diagnostics.length=0;let finishes=0,requests=0;
+ const j={...relocalJob,raw:disagreeRaw,mime_type:"image/png"};
+ const res=await runDeferred({store:{claim:async()=>j,finish:async(_j,v)=>{finishes++;return v.state}},
+ download:async()=>new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1]),digest:async()=>j.image_sha256,encode:()=>"fixture",
+ key:"fixture",fetchFn:async(...args)=>{requests++;return fetchFn(...args)},logFn:(name,fields)=>diagnostics.push({name,...fields})});
+ assert.equal(finishes,1);assert.equal(requests,1);assert.equal(res.ledger_written,false);
+ assert(!JSON.stringify(diagnostics).includes(full));
+ return res.state;
+};
+const hasStage=(stage,reason)=>diagnostics.some(d=>d.name==="bank_focused_stage"&&d.stage===stage&&d.reason===reason);
+assert.equal(await diagnose(async()=>{throw new DOMException("provider deadline","TimeoutError")}),"retry");
+assert(hasStage("read_transport","timeout"));
+assert(diagnostics.some(d=>d.name==="bank_bill_gemini_transport_error"&&d.error_type==="timeout"&&typeof d.elapsed_ms==="number"));
+assert.equal(await diagnose(async()=>{throw Error("private payload must not be logged")}),"retry");
+assert(hasStage("read_transport","network"));
+assert(!JSON.stringify(diagnostics).includes("private payload"));
+assert.equal(await diagnose(async()=>modelResponse(null)),"retry");
+assert(hasStage("read_parse","invalid_json"));
+assert.equal(await diagnose(async()=>modelResponse({...proof,reverse_digits:digits})),"needs_review");
+assert(hasStage("evidence","proof_mismatch"));
+assert.equal(await diagnose(async()=>modelResponse(proof)),"verified");
+assert(hasStage("evidence","verified"));
+assert.equal(await diagnose(async()=>({ok:false,status:429})),"needs_review");
+assert(hasStage("read_transport","gemini_http_429"));
+console.log("H5 stage diagnostics: parent cap, timeout/network, JSON, proof, quota, no sensitive output passed.");
