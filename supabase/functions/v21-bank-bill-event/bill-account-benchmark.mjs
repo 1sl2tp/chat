@@ -1,3 +1,4 @@
+import {normalizeBillImageMime,validateBillImageMime} from "./bill-image-identity.mjs";
 // Read-only benchmark of explicitly queued, already settled bills.
 // No receipt, reconciliation, notification, or ledger write.
 import {makeAccountRegionCache} from "./bill-account-region-cache.mjs";
@@ -26,11 +27,12 @@ export async function runAccountBenchmark({db,key,digest,signal,fetchFn=fetch}){
  };
  let state="failed",result={crop_used:false,exact:false,requests:0};
  try{
-  const mime=job.mime_type==="image/jpg"?"image/jpeg":job.mime_type;
+  const mime=normalizeBillImageMime(job.mime_type);
   if(!["image/jpeg","image/png","image/webp"].includes(mime)||!(/^[a-f0-9]{64}$/.test(job.image_sha256)))throw Error("invalid_image");
   const {data,error}=await db.storage.from("v21-media").download(job.storage_key);
   if(error||!data||data.size<1||data.size>6_000_000||signal?.aborted)throw Error("storage_unavailable");
   const bytes=new Uint8Array(await data.arrayBuffer());
+  if(!validateBillImageMime(bytes,mime))throw Error("invalid_image");
   if(await digest(bytes)!==job.image_sha256)throw Error("image_hash_mismatch");
   const counted=(...a)=>{result.requests++;return fetchFn(...a)};
   const cache=makeAccountRegionCache(db,"benchmark",job,{trace,signal});
