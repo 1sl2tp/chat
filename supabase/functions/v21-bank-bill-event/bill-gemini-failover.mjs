@@ -7,7 +7,7 @@ export const BILL_OCR_MAX_MODEL_REQUESTS=3;
 const TRANSIENT_CAPACITY=new Set([502,503,504]);
 
 export async function requestBillGemini({
-  key,model,payload,signal,fetchFn=fetch,
+  key,model,payload,signal,maxRequests=3,fetchFn=fetch,
   sleepFn=ms=>new Promise(resolve=>setTimeout(resolve,ms)),
   logFn=(name,fields)=>console.info(name,JSON.stringify(fields))
 }){
@@ -42,7 +42,7 @@ export async function requestBillGemini({
   // 1) Preferred small/low-cost model.
   const primary=await call(model,"primary");
   if(primary.ok)return{response:primary,usedModel:model,requestCount:1};
-  if(!TRANSIENT_CAPACITY.has(primary.status)||model===BILL_OCR_FALLBACK_MODEL)
+  if(maxRequests<2||!TRANSIENT_CAPACITY.has(primary.status)||model===BILL_OCR_FALLBACK_MODEL)
     throw new Error("gemini_http_"+primary.status);
 
   // 2) ONE alternate model, identical payload/key. No retry on invalid
@@ -50,7 +50,7 @@ export async function requestBillGemini({
   await wait(800);
   const backup=await call(BILL_OCR_FALLBACK_MODEL,"alternate");
   if(backup.ok)return{response:backup,usedModel:BILL_OCR_FALLBACK_MODEL,requestCount:2};
-  if(!TRANSIENT_CAPACITY.has(backup.status))
+  if(maxRequests<3||!TRANSIENT_CAPACITY.has(backup.status)
     throw new Error("gemini_http_"+backup.status);
 
   // 3) ONE delayed return to the low-cost model, ONLY if both endpoints
@@ -133,4 +133,10 @@ export async function requestParsedBillGemini({
      modelRequestCount:primary.requestCount+alt.requestCount
    };
  }
+}
+
+// Focused reread preserves the original deadline and total call ceiling.
+export function focusedReadBudget({started,now,requests,signal}){
+ const remaining=Math.max(0,30000-Math.max(0,now-started));
+ return {remaining,allowed:!signal?.aborted&&Number.isInteger(requests)&&requests>=1&&requests<BILL_OCR_MAX_MODEL_REQUESTS&&remaining>=6000};
 }

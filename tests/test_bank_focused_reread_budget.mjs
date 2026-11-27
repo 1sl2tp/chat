@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import {focusedReadBudget,requestBillGemini} from "../supabase/functions/v21-bank-bill-event/bill-gemini-failover.mjs";
+assert.equal(focusedReadBudget({started:1000,now:25000,requests:1}).allowed,true);
+assert.equal(focusedReadBudget({started:1000,now:25001,requests:1}).allowed,false);
+assert.equal(focusedReadBudget({started:1000,now:1000,requests:3}).allowed,false);
+assert.equal(focusedReadBudget({started:1000,now:1000,requests:1,signal:{aborted:true}}).allowed,false);
+let calls=0;
+await assert.rejects(requestBillGemini({key:"fixture",model:"gemini-3.5-flash-lite",payload:{},maxRequests:1,fetchFn:async()=>{calls++;return {ok:false,status:503}},logFn:()=>{},sleepFn:async()=>{throw Error("unexpected retry")}}),/gemini_http_503/);
+assert.equal(calls,1);
+console.log("Focused reread budget passed; no actual model or ledger call.");
