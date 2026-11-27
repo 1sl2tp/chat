@@ -88,6 +88,11 @@ eq(validate(fullMemo).fields.memo.text,"NGUYEN VAN A\nChuyen tien");eq(plan(full
 eq(PROMPT.includes("Tới/Đến không thuộc tên"),true);
 eq(PROMPT.includes("0/90/180/270"),true);
 eq(PROMPT.includes("dòng đầu tới dòng cuối"),true);
+const tightLabel=copy(a);tightLabel.fields.recipient_name=clear("Đến:Nguyễn Văn A");eq(plan(tightLabel).reasons.recipient_name,"possible_name_label");eq(plan(tightLabel).mode,"full_image");
+const wrapped=copy(a);wrapped.fields.reference={state:"clear",text:"AB123xyz456\n789",boxes:[[300,100,320,800],[321,100,340,200]]};
+eq(validate(wrapped).fields.reference.text,"AB123xyz456\n789");eq(validate(wrapped).fields.reference.boxes.length,2);eq(plan(wrapped).mode,"stop");
+const repeated=copy(a);repeated.account_check.count=12;eq(plan(repeated).reasons.recipient_account,"digit_disagreement");eq(validate(repeated).fields.recipient_account.text,a.fields.recipient_account.text);
+eq(PROMPT.includes("dòng tiếp nối của cùng mã"),true);eq(PROMPT.includes("kiểm từng ký tự và số lượng"),true);
 console.log("BANK-READER-ROOT-02: "+count+" assertions passed");
 
 
