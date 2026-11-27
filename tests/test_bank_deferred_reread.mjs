@@ -7,7 +7,7 @@ assert.equal(displayEvidence(raw,"account",proof).account.second_visible,full);
 assert.equal(displayEvidence(raw,"account",{...proof,clear:false}),null);
 const job={raw,field:"account",image_sha256:"a".repeat(64),storage_key:"fixture",mime_type:"image/png"};
 let calls=0,done=[];
-const run=(digest,fetchFn)=>runDeferred({store:{claim:async()=>job,finish:async(j,v)=>done.push(v)},download:async()=>new Uint8Array([1]),digest:async()=>digest,encode:()=>"AQ==",key:"fixture",fetchFn});
+const run=(digest,fetchFn)=>runDeferred({store:{claim:async()=>job,finish:async(j,v)=>done.push(v)},download:async()=>job.mime_type==="image/png"?new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1]):new Uint8Array([255,216,255,224]),digest:async()=>digest,encode:()=>"AQ==",key:"fixture",fetchFn});
 assert.equal((await run("b".repeat(64),async()=>{throw Error("must not call")})).state,"stale");
 assert.equal((await run(job.image_sha256,async()=>{calls++;return{ok:true,status:200,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(proof)}]}}]})}})).state,"verified");
 assert.equal(calls,1);
