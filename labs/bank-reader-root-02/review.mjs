@@ -30,7 +30,7 @@ export function regionIoU(a,b){
  const i=area(intersections),u=area([...a,...b]);return u?i/u:null;
 }
 export function scoreSample(gold,raw,metrics){
- if(!gold||!Array.isArray(Object.keys(gold.fields||{}))||!FIELDS.every(k=>labelState(gold.fields[k],gold.image_sha256)==="verified"))return {state:"unverified_gold"};
+ if(!gold||gold.frame_confirmed!==true||gold.coordinate_frame!=="displayed_original"||!FIELDS.every(k=>labelState(gold.fields[k],gold.image_sha256)==="verified"))return {state:"unverified_gold"};
  if(!["receipt","journal","notification","non_bill","unknown"].includes(gold.kind)||gold.kind_reviewed!==true)return {state:"unverified_gold"};
  if(!metrics||metrics.image_sha256!==gold.image_sha256||metrics.pass!==1||metrics.requests!==1||!Number.isFinite(metrics.elapsed_ms)||metrics.elapsed_ms<0)return {state:"invalid_measurement"};
  let a;try{a=validate(raw);}catch{return {state:"invalid_response",exact:0,total:10,kind_match:false,requests:metrics.requests,elapsed_ms:metrics.elapsed_ms};}
@@ -43,7 +43,7 @@ export function scoreSample(gold,raw,metrics){
 // Resume only labels that are tied to bytes already opened locally.
 // Imported review data is an assertion from a reviewer, not authenticated proof.
 export function restoreReview(sample,entry){
- if(!entry||entry.image_sha256!==sample.image_sha256||entry.coordinate_frame!=="displayed_original"||entry.frame_confirmed!==true)throw Error("resume_identity");
+ if(!entry||entry.image_sha256!==sample.image_sha256||entry.coordinate_frame!=="displayed_original"||typeof entry.frame_confirmed!=="boolean")throw Error("resume_identity");
  if(!["receipt","journal","notification","non_bill","unknown"].includes(entry.kind)&&entry.kind!==null)throw Error("resume_kind");
  const fields={};
  for(const k of FIELDS){
@@ -56,5 +56,5 @@ export function restoreReview(sample,entry){
 }
 export function exportReview(sample){
  const {file,...s}=sample;
- return {...s,coordinate_frame:"displayed_original",kind_reviewed:s.kind_reviewed===true&&s.frame_confirmed===true,fields:s.frame_confirmed===true?s.fields:{}};
+ return {...s,coordinate_frame:"displayed_original",kind_reviewed:s.kind_reviewed===true,frame_confirmed:s.frame_confirmed===true,fields:s.fields};
 }
