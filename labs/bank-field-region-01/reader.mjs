@@ -436,3 +436,32 @@ export function planWithValidation(first,proof,bankEvidence={}){
  const keys=FIELDS.filter(k=>Object.hasOwn(reasons,k));
  return {mode:keys.length?(keys.every(k=>first.fields[k].box)?"crop":"full_image"):"stop",fields:keys,reasons};
 }
+
+// V3 review contract: a second read never silently replaces a first clear literal.
+// Image proof and bank evidence are separate; proposals require human/image adjudication.
+export function reviewSecondPass(first,second,firstProof,secondProof,bankEvidence={}){
+ const a=validate(first,FIELDS),b=validate(second,FIELDS);
+ const plan=planWithValidation(a,firstProof,bankEvidence);
+ const proposals={},issues={};
+ if(plan.mode==="review"||a.kind!==b.kind||a.selection!=="single"||b.selection!=="single"||a.direction!==b.direction)return {state:"review",first:a,proposals,issues:{transaction:"selection_conflict"}};
+ // Require shared visible anchor fields before proposing anything. No inference from bank.
+ const anchors=["amount","date","time"].filter(k=>a.fields[k].state==="clear"&&b.fields[k].state==="clear"&&a.fields[k].literal===b.fields[k].literal);
+ const contradicted=["amount","date","time"].some(k=>a.fields[k].state==="clear"&&b.fields[k].state==="clear"&&a.fields[k].literal!==b.fields[k].literal);
+ if(a.kind!=="receipt"||anchors.length<2||contradicted)return {state:"review",first:a,proposals,issues:{transaction:"anchor_unconfirmed"}};
+ for(const k of plan.fields){
+  const v=b.fields[k];
+  if(v.state!=="clear"||!v.box){issues[k]="second_read_unverified";continue;}
+  if(k==="recipient_account"&&!checkAccountProof(v.literal,secondProof).ok){issues[k]="second_digit_disagreement";continue;}
+  proposals[k]={field:v,source:"second_image_read",requires_adjudication:true,first_literal:a.fields[k].literal};
+ }
+ return {state:Object.keys(proposals).length?"review_proposals":plan.fields.length?"review":"no_second_needed",first:a,proposals,issues};
+}
+// No gold label can be derived from a bank amount/account or from AI self-consensus.
+// Only an explicitly reviewed original image + field-specific annotation qualifies.
+export function evaluateGoldLabel(label,imageHash){
+ if(!label||label.image_sha256!==imageHash||!/^[a-f0-9]{64}$/.test(imageHash||"")||label.source!=="human_reviewed_original"||label.reviewed!==true)return "unverified";
+ if(label.state==="missing"&&label.literal===null&&label.box===null)return "verified_absence";
+ if(label.state!=="clear"||typeof label.literal!=="string"||!label.literal.trim())return "unverified";
+ const b=label.box;
+ return Array.isArray(b)&&b.length===4&&b.every(x=>Number.isInteger(x)&&x>=0&&x<=1000)&&b[2]>b[0]&&b[3]>b[1]?"verified_literal_region":"unverified";
+}
