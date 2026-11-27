@@ -4,7 +4,7 @@ create table public.chat_bank_bill_receipts(id uuid primary key,media_asset_id u
 create table public.v21_media_assets(id uuid primary key,message_id uuid,owner_account_id uuid,deleted_at timestamptz,storage_key text,mime_type text);
 \ir ../../supabase/functions/v21-bank-bill-event/deferred-reread-queue-candidate.sql
 insert into public.v21_media_assets values('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',null,'fixture.png','image/png');
-insert into public.chat_bank_bill_receipts values('40000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','{"transfer_success_visible":true,"account_digit_recheck_state":"timeout","small_text_recheck_state":"request_failed"}',repeat('a',64),'received',now(),123);
+insert into public.chat_bank_bill_receipts values('40000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001','{"transfer_success_visible":true,"account_digit_recheck_state":"digit_evidence_disagrees","small_text_recheck_state":"request_failed"}',repeat('a',64),'received',now(),123);
 do $test$
 declare j jsonb; k jsonb; before_row jsonb;
 begin
