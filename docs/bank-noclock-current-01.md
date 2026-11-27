@@ -1,0 +1,3 @@
+# BANK-NOCLOCK-CURRENT-01 draft
+
+0v PR #255. Current day, full account/name, immutable image send within 0..120s of official bank minute, exact substantive memo, no guessed sender, no conflicting printed labels, global competing bills/credits, manual/fingerprint/command/replay guards. Existing writer owns atomic collection; local row only until final ledger/link/receipt commit. Original OCR fields retained. SQL candidate derived from deployed definition, not a migration. Service-role ACL retained; verify definition drift and test actual PostgreSQL writer, concurrency and rollback before merge/deploy (SQL first, worker second). No UI or keyboard changes.

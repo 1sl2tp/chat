@@ -34,7 +34,18 @@ export async function recoverStoredNoClockBankCredit(db,asset){
   if(plan.status==="defer_to_canonical")
    return {handled:true,status:"review",reason:"stronger_existing_bill",
     ai_called:false,ledger_written:false};
-  if(plan.status!=="eligible")return null;
+  if(plan.status!=="eligible"){
+   // Only the atomic writer decides the narrow fallback; no OCR update here.
+   if((!r.receiving_bank||!r.raw_read?.sender_name)&&notices.data?.length===1){
+    const id=notices.data[0].id;
+    if(Number.isSafeInteger(id)){
+     const {data:posted,error:postError}=await db.rpc("chat_bank_app_collect",{p_asset_id:asset,p_notification_id:id});
+     if(!postError&&posted?.ok===true&&posted?.status==="received")
+      return {handled:true,status:"received",ai_called:false,ledger_written:true,ledger_id:posted.ledger_id,posted};
+    }
+   }
+   return null;
+  }
   const minute=Date.parse(plan.bank_time_vn.replace(" ","T")+"+07:00");
   if(!Number.isFinite(minute))return null;
   const [others,manual,linked]=await Promise.all([
