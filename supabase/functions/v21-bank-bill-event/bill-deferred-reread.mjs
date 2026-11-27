@@ -64,12 +64,16 @@ export async function runDeferred({store,download,digest,encode,key,fetchFn=fetc
    else{
     const disagreement=job.field==="account"&&job.raw.account_digit_recheck_state==="digit_evidence_disagrees";
     const prompt=job.field==="account"?(disagreement?ACCOUNT_DIGIT_RECHECK_PROMPT+"\nKhoanh vùng bằng mắt ngay sau nhãn tài khoản người nhận, bỏ qua nền điện thoại. Kiểm tra điểm bắt đầu và kết thúc của dãy số. Đếm các ký tự lặp theo vị trí nhìn thấy; nếu không phân biệt được từng ký tự thì clear=false.":ACCOUNT_DIGIT_RECHECK_PROMPT):clockOnlyEligible(job.raw)?CLOCK_ONLY_PROMPT:SMALL_TEXT_RECHECK_PROMPT;
-    const locate=job.field==="account"&&canLocateAccountRegion(bytes,mime,job.raw.recipient_account_region);
+    // A valid rectangle is not verified digit evidence. On disagreement discard
+    // the unverified first-pass hint and independently locate the recipient line.
+    // Stay inside the existing locator + one read budget; never use expected digits.
+    const storedRegion=disagreement?null:job.raw.recipient_account_region;
+    const locate=job.field==="account"&&canLocateAccountRegion(bytes,mime,storedRegion);
     const bounded=AbortSignal.timeout(locate?30000:15000),combined=signal?AbortSignal.any([signal,bounded]):bounded;
     const trace=event=>console.info("bank_account_crop_trace",JSON.stringify(event));
-    const cache=locate?makeRegionCache?.(job,trace):null;
+    const cache=locate&&!disagreement?makeRegionCache?.(job,trace):null;
     let usedRegion=null,cacheHit=false;
-    const imageParts=job.field==="account"?(locate?await prepareLocatedAccountParts({bytes,mime,stored:job.raw.recipient_account_region,encode,key,fetchFn,signal:combined,trace,cache,onCropRegion:(region,hit)=>{usedRegion=region;cacheHit=hit;}}):await accountImageParts({bytes,mime,region:job.raw.recipient_account_region,encode,signal:combined,trace})):[{inlineData:{mimeType:mime,data:encode(bytes)}}];
+    const imageParts=job.field==="account"?(locate?await prepareLocatedAccountParts({bytes,mime,stored:storedRegion,encode,key,fetchFn,signal:combined,trace,cache,onCropRegion:(region,hit)=>{usedRegion=region;cacheHit=hit;}}):await accountImageParts({bytes,mime,region:storedRegion,encode,signal:combined,trace})):[{inlineData:{mimeType:mime,data:encode(bytes)}}];
     const readDeadline=AbortSignal.any([combined,AbortSignal.timeout(15000)]);
     const v=await requestBillGemini({key,model:disagreement?BILL_OCR_FALLBACK_MODEL:"gemini-3.5-flash-lite",maxRequests:1,signal:readDeadline,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},...imageParts]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
     const parsed=await parseBillGeminiResponse(v.response,{signal:readDeadline});
