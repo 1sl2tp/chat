@@ -18,6 +18,11 @@ jobs:
 
       - run: node tests/test_bank_deferred_reread.mjs
       - run: node tests/test_bank_focus_activation.mjs
+      - run: node tests/test_bank_account_crop.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno run tests/test_bank_account_crop_deno.mjs
 
   queue:
     runs-on: ubuntu-latest
