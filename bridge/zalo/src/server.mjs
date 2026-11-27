@@ -182,9 +182,11 @@ server.listen(port,'0.0.0.0',()=>{
             }else{
               bridged=await messageGateway.ingestText(event);
             }
+            if(event.eventKind==='missed_call')console.info('[callback-01] ingress',bridged?.messageId?'accepted':'not_stored');
             if(bridged?.messageId)bridgeStats.inboundStored+=1;
             else bridgeStats.inboundIgnored+=1;
           }catch(error){
+            if(event.eventKind==='missed_call')console.warn('[callback-01] ingress failed');
             console.warn('[zalo-bridge] inbound failed',String(error?.message||error));
           }
         },
