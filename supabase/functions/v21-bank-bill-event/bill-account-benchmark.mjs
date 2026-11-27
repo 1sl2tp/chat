@@ -2,14 +2,9 @@
 // No receipt, reconciliation, notification, or ledger write.
 import {makeAccountRegionCache} from "./bill-account-region-cache.mjs";
 import {prepareLocatedAccountParts} from "./bill-account-locator.mjs";
-import {ACCOUNT_DIGIT_RECHECK_PROMPT} from "./bill-amount-rules.mjs";
+import {ACCOUNT_DIGIT_RECHECK_PROMPT,validateAccountDigitProof} from "./bill-amount-rules.mjs";
 import {requestBillGemini,parseBillGeminiResponse} from "./bill-gemini-failover.mjs";
-const literal=v=>typeof v==="string"?v.trim().replace(/[ \t]/g,""):"";
-export function benchmarkProof(proof){
- if(proof?.role!=="recipient_account"||proof.clear!==true||!Array.isArray(proof.digits)||!Array.isArray(proof.reverse_digits)||proof.digits.length!==13||proof.reverse_digits.length!==13||!proof.digits.every(d=>typeof d==="string"&&/^\d$/.test(d))||!proof.reverse_digits.every(d=>typeof d==="string"&&/^\d$/.test(d))||proof.digit_count!==13||proof.trailing_nines!==6)return false;
- const digits=proof.digits.join("");
- return digits==="2901181999999"&&literal(proof.visible)===digits&&proof.reverse_digits.join("")===[...digits].reverse().join("");
-}
+export function benchmarkProof(proof){return validateAccountDigitProof(proof)!==null;}
 const encode=bytes=>{let s="";for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);};
 export async function runAccountBenchmark({db,key,digest,signal,fetchFn=fetch}){
  const rpc=async(name,args={})=>{const {data,error}=await db.rpc(name,args);if(error)throw Error("benchmark_rpc_failed");return data};
@@ -25,7 +20,7 @@ export async function runAccountBenchmark({db,key,digest,signal,fetchFn=fetch}){
   const bytes=new Uint8Array(await data.arrayBuffer());
   if(await digest(bytes)!==job.image_sha256)throw Error("image_hash_mismatch");
   const counted=(...a)=>{result.requests++;return fetchFn(...a)};
-  const cache=makeAccountRegionCache(db,"benchmark",job,{trace});
+  const cache=makeAccountRegionCache(db,"benchmark",job,{trace,signal});
   let usedRegion=null,cacheHit=false;
   const parts=await prepareLocatedAccountParts({bytes,mime,stored:job.region,encode,key,fetchFn:counted,signal,trace,cache,onCropRegion:(region,hit)=>{usedRegion=region;cacheHit=hit;}});
   result.crop_used=parts.length===3;
