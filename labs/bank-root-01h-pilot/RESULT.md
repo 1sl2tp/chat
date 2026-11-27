@@ -10,3 +10,7 @@ Both HTTP 200, no HTTP timeout, no receipt or ledger writes. Small bill read fai
 
 ## H5 re-test — candidate 1b7495a
 CI 4/4. Pilot v3, 7/7 source files match. Request 22473 unauthorized: 403. Request 22474: HTTP 200, verified/exact true, locator/crop true, 2 calls, total 12321 ms, prepare 1663 ms, read transport 9937 ms, parse and evidence accepted, no receipt/ledger write. No new call after this result. One success does not prove timeout change was necessary for this run (read took under 15s). Endpoint closed after test. Production release requires integration and SQL compatibility checks.
+
+## VietinBank and BIDV real-image cycles
+Candidate 1b7495a, LAB wrapper 32ca996. Requests 22479–22480: original hash verified; both JPEG upright and codec decoded; VietinBank EXIF present, BIDV image/jpg alias; zero AI. Prior logs: region_missing_or_invalid, HTTP 200, no crop.
+22481 VietinBank: cold 4080ms, 2 AI, exact and crop; warm 1403ms, 1 AI, exact and crop, cache hit. 22482 BIDV: cold 3680ms, 2 AI; warm 1544ms, 1 AI; both exact and crop, cache hit. In-memory cache adapter, not persistent production cache. Separate combined SQL rollback test with actual receipt 1280 checked cold/put/warm/wrong lease/hash/version/remove and permit overlap. No ledger/receipt writes. Endpoint closed after trials. Integrated persistent cache + Edge deployment and stacked merge still pending.
