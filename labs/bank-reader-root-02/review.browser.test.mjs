@@ -19,7 +19,11 @@ try{
  await page.locator("#kind").selectOption("receipt");
  await page.locator("#fields button").nth(4).click();
  await page.locator("#literal").fill("123.456 VND");
+ await page.locator(".viewer").scrollIntoViewIfNeeded();
+ await page.locator(".viewer").evaluate(e=>{e.scrollTop=0;e.scrollLeft=0});
  const rect=await page.locator("#overlay").boundingBox();
+ const visible=await page.locator(".viewer").boundingBox();
+ assert(rect&&visible&&rect.y+rect.height*.2<visible.y+visible.height,"annotation target visible");
  await page.mouse.move(rect.x+rect.width*.1,rect.y+rect.height*.1);await page.mouse.down();await page.mouse.move(rect.x+rect.width*.5,rect.y+rect.height*.2);await page.mouse.up();
  await page.locator("#save").click();
  assert.equal(await page.locator("#progress").textContent(),"1/10 trường đã xác minh");
@@ -28,6 +32,7 @@ try{
  assert(exported.samples[0].fields.amount.boxes.length===1);
  await page.locator("#resume").setInputFiles({name:"review.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify(exported))});
  await page.waitForFunction(()=>document.querySelector("#feedback").textContent.includes("Đã nhập"));
+ await page.waitForFunction(()=>document.querySelector("#photo").complete&&document.querySelector("#photo").naturalWidth===300);
  assert.equal(await page.locator("#progress").textContent(),"0/10 trường đã xác minh");
  await page.locator("#frame").check();
  assert.equal(await page.locator("#progress").textContent(),"1/10 trường đã xác minh");
