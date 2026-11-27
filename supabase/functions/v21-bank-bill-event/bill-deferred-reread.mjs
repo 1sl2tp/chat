@@ -1,3 +1,4 @@
+import {normalizeBillImageMime,validateBillImageMime} from "./bill-image-identity.mjs";
 // Display-only focused recovery; no ledger, receipt mutation, or matcher.
 // Store owns atomic claim + version-checked save. Caller is a trusted server.
 import {ACCOUNT_DIGIT_RECHECK_PROMPT,SMALL_TEXT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,needsSmallTextRecheck,recoverSmallText,readV4Fields} from "./bill-amount-rules.mjs";
@@ -54,12 +55,12 @@ export async function runDeferred({store,download,digest,encode,key,fetchFn=fetc
  // Compute once. Persist once; ambiguous persistence is resolved by lease expiry,
  // not a second finish call with a different state.
  let state="retry",evidence=null;
- const mime=job.mime_type==="image/jpg"?"image/jpeg":job.mime_type;
+ const mime=normalizeBillImageMime(job.mime_type);
  try{
   if(!deferredFields(job.raw).includes(job.field)||!(/^[a-f0-9]{64}$/.test(job.image_sha256))||!["image/png","image/jpeg","image/webp"].includes(mime))state="stale";
   else{
    const bytes=await download(job.storage_key,signal);
-   if(!(bytes instanceof Uint8Array)||bytes.length<1||bytes.length>6_000_000||await digest(bytes)!==job.image_sha256)state="stale";
+   if(!(bytes instanceof Uint8Array)||bytes.length<1||bytes.length>6_000_000||!validateBillImageMime(bytes,mime)||await digest(bytes)!==job.image_sha256)state="stale";
    else{
     const disagreement=job.field==="account"&&job.raw.account_digit_recheck_state==="digit_evidence_disagrees";
     const prompt=job.field==="account"?(disagreement?ACCOUNT_DIGIT_RECHECK_PROMPT+"\nKhoanh vùng bằng mắt ngay sau nhãn tài khoản người nhận, bỏ qua nền điện thoại. Kiểm tra điểm bắt đầu và kết thúc của dãy số. Đếm các ký tự lặp theo vị trí nhìn thấy; nếu không phân biệt được từng ký tự thì clear=false.":ACCOUNT_DIGIT_RECHECK_PROMPT):clockOnlyEligible(job.raw)?CLOCK_ONLY_PROMPT:SMALL_TEXT_RECHECK_PROMPT;
