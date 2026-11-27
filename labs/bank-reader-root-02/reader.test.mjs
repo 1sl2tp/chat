@@ -26,7 +26,7 @@ eq(plan(a,{amountMatch:false}).reasons.amount,"bank_mismatch");
 const d=copy(a);d.fields.recipient_account={state:"unclear",text:"123456789999?",boxes:[]};eq(plan(d).mode,"full_image");
 const e=copy(a);e.fields.memo={state:"unclear",text:"chuyen tien",boxes:[[100,100,150,800]]};eq(plan(e).mode,"crop");
 const g=copy(a);g.fields.amount=absent();eq(plan(g).reasons.amount,"amount_missing");
-const h=copy(a);h.kind="non_bill";eq(plan(h).mode,"stop_non_bill");
+const h=receipt();h.kind="non_bill";h.selection="none";eq(plan(h).mode,"stop_non_bill");
 const j=copy(a);j.kind="journal";j.selection="ambiguous";eq(plan(j).mode,"review");
 const k=copy(a);k.status="pending";eq(plan(k).mode,"review");k.status="failed";eq(plan(k).mode,"review");k.status="success";k.kind="unknown";eq(plan(k).mode,"review");
 const m=copy(a);delete m.fields.memo;fails(()=>validate(m),/schema/);
@@ -56,5 +56,21 @@ eq(plan(isolated).mode,"stop");
 const noClock=copy(isolated);noClock.fields.time=absent();eq(plan(noClock).mode,"stop");
 const mixed=copy(isolated);mixed.fields.time=clear("lúc 8:09");eq(plan(mixed).reasons.time,"clock_literal_not_isolated");
 eq(validate(mixed).fields.time.text,"lúc 8:09");
+
+const goods=receipt();goods.kind="non_bill";goods.selection="none";eq(plan(goods).mode,"stop_non_bill");
+const contradictory=copy(a);contradictory.kind="non_bill";contradictory.selection="none";eq(plan(contradictory).mode,"review");eq(plan(contradictory).reasons.classification,"non_bill_conflict");
+const badSelection=copy(goods);badSelection.selection="single";eq(plan(badSelection).mode,"review");
+const mixedReceipt=copy(a);mixedReceipt.selection="ambiguous";eq(plan(mixedReceipt).mode,"review");
+const covered=copy(a);covered.fields.recipient_account={state:"unclear",text:null,boxes:[]};eq(plan(covered).mode,"full_image");
+const ui=copy(a);ui.fields.memo={state:"clear",text:"Nội dung mẫu\nXem thêm",boxes:[[300,20,350,800],[360,20,400,800]]};eq(plan(ui).reasons.memo,"possible_ui_boundary");eq(plan(ui).mode,"full_image");
+eq(validate(ui).fields.memo.text,"Nội dung mẫu\nXem thêm");
+eq(Object.keys(review(ui,ui).proposals).length,0);
+const fixed=copy(ui);fixed.fields.memo=clear("Nội dung mẫu");eq(review(ui,fixed).proposals.memo.requires_review,true);
+const realMemo=copy(a);realMemo.fields.memo=clear("Xin xem thêm hàng");eq(plan(realMemo).mode,"stop");
+const singleLine=copy(a);singleLine.fields.memo=clear("Xem thêm");eq(plan(singleLine).mode,"stop");
+const bodyText=copy(a);bodyText.fields.memo=clear("Xem thêm\nNội dung giao dịch");eq(plan(bodyText).mode,"stop");
+const twoLines=copy(a);twoLines.fields.memo=clear("Mua hàng\nChuyen tien");eq(plan(twoLines).mode,"stop");
+eq(PROMPT.includes("không ghép STK"),true);eq(PROMPT.includes("cả 10 trường missing"),true);
 console.log("BANK-READER-ROOT-02: "+count+" assertions passed");
+
 
