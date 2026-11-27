@@ -1,0 +1,5 @@
+# BANK-NOCLOCK-CURRENT-01 draft
+
+0v PR #255. Current day, full account/name, immutable image send within 0..120s of official bank minute, exact substantive memo, no guessed sender, no conflicting printed labels, global competing bills/credits, manual/fingerprint/command/replay guards. Existing writer owns atomic collection; local row only until final ledger/link/receipt commit. Original OCR fields retained. SQL candidate derived from deployed definition, not a migration. Service-role ACL retained; verify definition drift and test actual PostgreSQL writer, concurrency and rollback before merge/deploy (SQL first, worker second). No UI or keyboard changes.
+
+CI 0b3a59e: historical fixture passed. Writer reached existing late link builder, fixture stub incorrectly declared six arguments; production signature verified five. Verify V21 BANK-362 expected four ACK callsites; new fresh no-clock successful path adds fifth. Update count and explicitly assert guarded fresh ACK; retain all negative ACK tests. No production writer change. Exact-head rerun required.

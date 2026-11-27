@@ -1,0 +1,53 @@
+name: BANK-NOCLOCK-CURRENT-01 writer fixture
+on:
+  pull_request:
+    paths:
+      - 'docs/sql/bank-noclock-current-01-candidate.sql'
+      - 'fixtures/bank-noclock-current/**'
+      - 'supabase/functions/v21-bank-bill-event/**'
+      - '.github/workflows/bank-noclock-current.yml'
+permissions:
+  contents: read
+jobs:
+  writer:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fixture
+          POSTGRES_PASSWORD: fixture_only
+          POSTGRES_DB: fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGUSER: fixture
+      PGPASSWORD: fixture_only
+      PGDATABASE: fixture
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --check supabase/functions/v21-bank-bill-event/bill-no-clock-worker.mjs
+      - run: psql -X -v ON_ERROR_STOP=1 -f fixtures/bank-noclock-current/schema.sql -f fixtures/bank-noclock-current/test.sql
+      - name: Concurrent real writer calls (isolated fixture)
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -At -v ON_ERROR_STOP=1 -c "begin; select fixture_call(); select pg_sleep(1); commit;" > /tmp/noclock-a &
+          first=$!
+          psql -X -At -v ON_ERROR_STOP=1 -c "select fixture_call();" > /tmp/noclock-b &
+          second=$!
+          wait "$first"
+          wait "$second"
+          cat /tmp/noclock-a /tmp/noclock-b
+          psql -X -v ON_ERROR_STOP=1 -c "select fixture_assert((select count(*)=1 from taphoa_debt_ledger),'concurrent: one ledger'),fixture_assert((select count(*)=1 from chat_bank_app_collection_links),'concurrent: one bank link'),fixture_assert((select count(*)=1 from taphoa_command_log),'concurrent: one command');"
+          python - <<'PY'
+          import json
+          rows=[json.loads(line) for file in ['/tmp/noclock-a','/tmp/noclock-b'] for line in open(file) if line.startswith('{')]
+          assert len(rows)==2 and all(r['status']=='received' for r in rows) and sum(r['replayed'] for r in rows)==1 and len({r['ledger_id'] for r in rows})==1,rows
+          PY

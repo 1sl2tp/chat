@@ -802,8 +802,15 @@ Deno.serve(async req=>{
    }
    // BANK-366: one opt-in, auditable customer request per identified transfer;
    // no new scan, no financial post and no repeat for another crop.
-   if(classification==="review"&&classificationReason==="bill_printed_time_missing")
+   if(classification==="review"&&classificationReason==="bill_printed_time_missing"){
+    const recovery=await recoverStoredNoClockBankCredit(db,asset);
+    if(recovery?.handled&&recovery.status==="received"&&recovery.posted){
+     await acknowledgePostedCollection(recovery.posted);
+     return response({ok:true,status:"received",amount_vnd:amount,ai_called:true,ledger_written:true,ledger_id:recovery.ledger_id});
+    }
+    if(recovery?.handled)return response({ok:true,status:recovery.status,amount_vnd:amount,ai_called:true,ledger_written:false},202);
     await sendMissingClockCustomerReconciliation(db,asset);
+   }
    try{await notifyTestScan(asset,job.customer_account_id,status,amount);}catch(e){console.warn("bill_scan_feedback_failed",String(e).slice(0,80));}
    return response({ok:true,status,amount_vnd:amount,duplicate:false,ai_called:true,ledger_written:false,
      decision:describeBillDecision({status,reason,match_preview:storedPreview})});
