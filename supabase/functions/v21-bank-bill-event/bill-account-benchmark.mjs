@@ -1,5 +1,6 @@
 // Read-only benchmark of explicitly queued, already settled bills.
 // No receipt, reconciliation, notification, or ledger write.
+import {makeAccountRegionCache} from "./bill-account-region-cache.mjs";
 import {prepareLocatedAccountParts} from "./bill-account-locator.mjs";
 import {ACCOUNT_DIGIT_RECHECK_PROMPT} from "./bill-amount-rules.mjs";
 import {requestBillGemini,parseBillGeminiResponse} from "./bill-gemini-failover.mjs";
@@ -24,12 +25,16 @@ export async function runAccountBenchmark({db,key,digest,signal,fetchFn=fetch}){
   const bytes=new Uint8Array(await data.arrayBuffer());
   if(await digest(bytes)!==job.image_sha256)throw Error("image_hash_mismatch");
   const counted=(...a)=>{result.requests++;return fetchFn(...a)};
-  const parts=await prepareLocatedAccountParts({bytes,mime,stored:job.region,encode,key,fetchFn:counted,signal,trace});
+  const cache=makeAccountRegionCache(db,"benchmark",job,{trace});
+  let usedRegion=null,cacheHit=false;
+  const parts=await prepareLocatedAccountParts({bytes,mime,stored:job.region,encode,key,fetchFn:counted,signal,trace,cache,onCropRegion:(region,hit)=>{usedRegion=region;cacheHit=hit;}});
   result.crop_used=parts.length===3;
   const deadline=signal?AbortSignal.any([signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000);
   const v=await requestBillGemini({key,model:"gemini-3.5-flash-lite",maxRequests:1,fetchFn:counted,signal:deadline,payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},...parts]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:2048}}});
   result.exact=benchmarkProof(await parseBillGeminiResponse(v.response,{signal:deadline}));
   state=result.exact?"verified":"needs_review";
+  if(result.exact&&usedRegion&&!cacheHit&&!signal?.aborted)await cache?.put(usedRegion);
+  if(!result.exact&&cacheHit&&!signal?.aborted)await cache?.remove();
  }catch{state="failed";}
  console.info("bank_account_benchmark_timing",JSON.stringify({state,...result,elapsed_ms:Math.max(0,Date.now()-started)}));
  const saved=await rpc("v0_bill_crop_benchmark_finish",{p_id:job.id,p_lease:job.lease_id,p_state:state,p_result:result});
