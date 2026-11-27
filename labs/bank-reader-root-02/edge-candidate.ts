@@ -1,7 +1,7 @@
 // Deployment candidate, NOT a deployed endpoint.
 // Use current user's JWT and Storage RLS. No service-role key, no financial RPC.
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {createReaderHandler,selectAuthorizedImage} from "./api.mjs";
+import {createReaderHandler,selectAuthorizedImage,withBrowserCors,hasVerifiedMfaClaim} from "./api.mjs";
 const url=Deno.env.get("SUPABASE_URL")||"";
 const anon=Deno.env.get("SUPABASE_ANON_KEY")||"";
 const key=Deno.env.get("GEMINI_API_KEY")||"";
@@ -11,7 +11,7 @@ const handler=createReaderHandler({
  async authorize(auth:string){
   const db=client(auth);
   const {data,error}=await db.auth.getUser(auth.slice(7));
-  if(error||!data.user||data.user.is_anonymous)return null;
+  if(error||!data.user||data.user.is_anonymous||!hasVerifiedMfaClaim(auth.slice(7)))return null;
   const r=await db.rpc("v0_admin_read",{p_kind:"session",p_conversation_id:null});
   if(r.error||r.data?.role!=="admin"||!r.data?.account_id)return null;
   return {db,accountId:r.data.account_id};
@@ -48,4 +48,4 @@ const handler=createReaderHandler({
   let s="";for(let i=0;i<bytes.length;i+=16000)s+=String.fromCharCode(...bytes.subarray(i,i+16000));return btoa(s);
  }
 });
-Deno.serve(handler);
+Deno.serve(withBrowserCors(handler));
