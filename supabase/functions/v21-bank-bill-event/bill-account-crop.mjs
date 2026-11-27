@@ -89,6 +89,15 @@ async function jpegCodec(){
  const mod=await import("npm:jpeg-js@0.4.4");
  return mod.default??mod;
 }
+export async function probeJpegCodec(bytes,{loadCodec=jpegCodec,signal}={}){
+ const info=inspectJpeg(bytes);if(info.reason!=="eligible")return info.reason;
+ if(signal?.aborted)return "aborted";
+ let codec,image;
+ try{codec=await loadCodec();}catch{return "codec_import";}
+ if(signal?.aborted)return "aborted";
+ try{image=codec.decode(bytes,{useTArray:true,formatAsRGBA:true,tolerantDecoding:false,maxResolutionInMP:3,maxMemoryUsageInMB:48});}catch{return "codec_decode";}
+ return image.width===info.width&&image.height===info.height?"decoded":"codec_dimensions";
+}
 export async function buildAccountCrop(bytes,mime,region,{loadCodec=jpegCodec,signal,trace=()=>{}}={}){
  const fail=reason=>{trace({stage:"crop",reason});return null;};
  if(signal?.aborted)return fail("aborted");
