@@ -33,3 +33,14 @@ for(const [value,reason] of [[null,"region_response_invalid"],[{role:"unknown",b
 }
 assert.equal(ACCOUNT_REGION_RESPONSE_SCHEMA.properties.box.items.type,"integer");
 assert.deepEqual(ACCOUNT_REGION_RESPONSE_SCHEMA.required,["role","box"]);
+
+let removed=0,used=null;
+const beforeCalls=calls;
+const cache={get:async()=>region,remove:async()=>{removed++;}};
+assert.equal((await prepareLocatedAccountParts({...args,loadCodec,cache,onCropRegion:(r,hit)=>{used={r,hit};}})).length,3);
+assert.equal(calls,beforeCalls);assert.deepEqual(used,{r:region,hit:true});
+assert.equal((await prepareLocatedAccountParts({...args,cache,loadCodec:async()=>{throw Error("codec")}})).length,1);
+assert.equal(removed,1);
+const miss={get:async()=>({role:"recipient_account",box:[0,0,1000,1000]}),remove:async()=>{throw Error("not hit");}};
+assert.equal((await prepareLocatedAccountParts({...args,loadCodec,cache:miss})).length,3);
+assert.equal(calls,beforeCalls+1);
