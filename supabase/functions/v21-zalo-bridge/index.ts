@@ -143,7 +143,26 @@ Deno.serve(async(req:Request)=>{
     });
   }
 
+  if(action==="linked_ids"){
+    const {data,error}=await admin.from("zalo_user_links").select("zalo_id");
+    if(error)return reply(500,{ok:false,error:"linked_ids_failed"});
+    const zaloIds=[...new Set((data??[])
+      .map((row:any)=>String(row?.zalo_id??"").trim())
+      .filter(Boolean))].sort();
+    return reply(200,{ok:true,zalo_ids:zaloIds});
+  }
+
   if(action==="ingress"){
+    // Only this authenticated bridge route may introduce typed missed-call provenance.
+    if(body.event_kind==="missed_call"){
+      if(String(body.body??"")!=="Cuộc gọi nhỡ"||typeof body.event_at!=="string")return reply(400,{ok:false,error:"invalid_missed_call"});
+      const {data,error}=await admin.rpc("v0_zalo_missed_call_ingress",{
+        p_zalo_id:String(body.zalo_id??""),p_zalo_message_id:String(body.zalo_message_id??""),p_event_at:body.event_at,
+      });
+      if(error)return reply(500,{ok:false,error:"missed_call_ingress_failed"});
+      return reply(200,{ok:true,message_id:data??null});
+    }
+    if(body.event_kind!=null)return reply(400,{ok:false,error:"invalid_event_kind"});
     const {data,error}=await admin.rpc("v21_zalo_ingress",{
       p_zalo_id:String(body.zalo_id??""),
       p_zalo_message_id:String(body.zalo_message_id??""),

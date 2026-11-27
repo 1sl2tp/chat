@@ -126,3 +126,11 @@ test('history recovery resolves only linked Zalo ids through authenticated bridg
   assert.equal(calls[0].body.action,'linked_ids');
   assert.equal(calls[0].options.headers['x-bridge-token'],'secret');
 });
+
+test('missed-call ingress retains trusted event kind without changing ordinary text contract',async()=>{
+ const calls=[];const gateway=createMessageGateway({endpoint:'https://example.test/bridge',bridgeToken:'fixture',fetchImpl:fakeFetch(calls)});
+ await gateway.ingestText({zaloId:'z1',messageId:'m1',text:'Cuộc gọi nhỡ',eventKind:'missed_call'});
+ await gateway.ingestText({zaloId:'z1',messageId:'m2',text:'Cuộc gọi nhỡ'});
+ assert.equal(calls[0].body.event_kind,'missed_call');
+ assert.equal(Object.hasOwn(calls[1].body,'event_kind'),false);
+});
