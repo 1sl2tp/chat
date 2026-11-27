@@ -44,6 +44,16 @@ export async function locateAccountRegion({bytes,mime,stored,encode,key,model="g
  }catch(error){const m=String(error?.message||"");return fail(combined.aborted?"timeout":m==="gemini_invalid_json"?"invalid_json":/^gemini_http_\d{3}$/.test(m)?m:"request_failed");}
 }
 export async function prepareLocatedAccountParts(args){
- const region=await locateAccountRegion(args);
- return accountImageParts({...args,region});
+ const dim=safeJpegDimensions(args.bytes);
+ let stored=args.stored,cacheHit=false;
+ if(dim&&!regionRect(stored,dim.width,dim.height)&&args.cache&&!args.signal?.aborted){
+  const cached=normalizeAccountRegion(await args.cache.get());
+  if(regionRect(cached,dim.width,dim.height)){stored=cached;cacheHit=true;args.trace?.({stage:"cache",reason:"hit"});}
+  else args.trace?.({stage:"cache",reason:"miss"});
+ }
+ const region=await locateAccountRegion({...args,stored});
+ const parts=await accountImageParts({...args,region});
+ if(parts.length===3&&region)args.onCropRegion?.(region,cacheHit);
+ else if(cacheHit&&!args.signal?.aborted)await args.cache.remove();
+ return parts;
 }
