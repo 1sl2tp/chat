@@ -1,0 +1,31 @@
+name: BANK-READER-ROOT-02 lab
+on:
+  pull_request:
+    paths:
+      - 'labs/bank-reader-root-02/**'
+      - '.github/workflows/bank-reader-root-02.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node labs/bank-reader-root-02/reader.test.mjs
+
+      - run: node labs/bank-reader-root-02/review.test.mjs
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --prefix "$RUNNER_TEMP/bill-browser" --no-save --ignore-scripts playwright@1.58.2
+      - run: "$RUNNER_TEMP/bill-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - run: PLAYWRIGHT_PACKAGE_ROOT="$RUNNER_TEMP/bill-browser" node labs/bank-reader-root-02/review.browser.test.mjs

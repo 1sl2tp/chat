@@ -873,3 +873,45 @@ jobs:
           node tests/test_chat432_chatwoot_one_pane_20261121.cjs
       - name: Verify canonical source
         run: python tools/verify_current.py
+
+  bank-reader-root-02:
+    # Lab only; do not run on branches that predate the review tool.
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect offline review tool
+        id: lab
+        run: |
+          if test -f labs/bank-reader-root-02/review-offline.html; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.lab.outputs.present == 'true'
+        with:
+          node-version: '22'
+      - name: Verify reader and review contract
+        if: steps.lab.outputs.present == 'true'
+        run: |
+          node labs/bank-reader-root-02/reader.test.mjs
+          node labs/bank-reader-root-02/review.test.mjs
+      - name: Install pinned browser test dependency
+        if: steps.lab.outputs.present == 'true'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/bill-browser" --no-save --ignore-scripts playwright@1.58.2
+          "$RUNNER_TEMP/bill-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Browser smoke — offline annotation
+        if: steps.lab.outputs.present == 'true'
+        run: PLAYWRIGHT_PACKAGE_ROOT="$RUNNER_TEMP/bill-browser" node labs/bank-reader-root-02/review.browser.test.mjs
+      - name: Package tested offline tool
+        if: steps.lab.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bank-reader-root-02-review-offline
+          path: labs/bank-reader-root-02/review-offline.html
+          if-no-files-found: error
