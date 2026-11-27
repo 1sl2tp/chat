@@ -58,3 +58,31 @@ assert.equal(done.at(-1).evidence.account.second_visible,full);
 assert.equal((await run(job.image_sha256,async()=>{mismatchCalls++;return modelResponse({...proof,reverse_digits:digits})})).state,"needs_review");
 assert.equal(done.at(-1).evidence,null);assert.equal(mismatchCalls,2);
 console.log("Disagreement recovery uses alternate vision, strict proof and one request per claim.");
+
+// An OCR disagreement must not repeatedly use the same unverified box or cache.
+// This header-only fixture deliberately makes the locator decline the region,
+// so the bounded fallback can be tested without image codecs or real AI.
+const jpegHeader=new Uint8Array([255,216,255,192,0,8,8,9,132,4,101,1,255,218]);
+const regionHint={role:"recipient_account",box:[374,454,389,632]};
+let relocalCalls=0,cacheCalls=0,finishCount=0;
+const relocalJob={...job,mime_type:"image/jpeg",raw:{...disagreeRaw,recipient_account_region:regionHint},field:"account"};
+const relocalResult=await runDeferred({
+ store:{claim:async()=>relocalJob,finish:async(j,v)=>{finishCount++;assert.equal(v.state,"needs_review");assert.equal(v.evidence,null);}},
+ download:async()=>jpegHeader,digest:async()=>relocalJob.image_sha256,encode:()=>"fixture",
+ key:"fixture",makeRegionCache:()=>{cacheCalls++;throw Error("must not reuse cache after disagreement");},
+ fetchFn:async(url,opts)=>{
+   relocalCalls++;
+   const payload=JSON.parse(opts.body);
+   assert(!opts.body.includes(full));
+   if(relocalCalls===1){
+    assert(payload.generationConfig.responseJsonSchema);
+    return modelResponse({role:"unknown",box:[]});
+   }
+   assert.equal(relocalCalls,2);assert.match(url,/models\\/gemini-3\\.5-flash:generateContent$/);
+   assert.equal(payload.contents[0].parts.length,2);
+   return modelResponse({...proof,reverse_digits:digits});
+ }
+});
+assert.equal(relocalResult.state,"needs_review");assert.equal(relocalResult.ledger_written,false);
+assert.equal(relocalCalls,2);assert.equal(cacheCalls,0);assert.equal(finishCount,1);
+console.log("Disagreement re-localizes without unverified hint/cache, bounded original fallback.");
