@@ -19,7 +19,7 @@ jobs:
 
       - run: node labs/bank-reader-root-02/review.test.mjs
   browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
