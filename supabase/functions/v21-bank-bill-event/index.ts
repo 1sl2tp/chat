@@ -10,6 +10,7 @@ import {recoverStoredNoClockBankCredit} from "./bill-no-clock-worker.mjs";
 import {sendMissingClockCustomerReconciliation} from "./bill-no-clock-customer-notice.mjs";
 import {requestParsedBillGemini,requestBillGemini,parseBillGeminiResponse,BILL_OCR_FALLBACK_MODEL,BILL_OCR_MAX_MODEL_REQUESTS,focusedReadBudget} from "./bill-gemini-failover.mjs";
 import {accountImageParts,normalizeAccountRegion} from "./bill-account-crop.mjs";
+import {inspectAccountCohort} from "./bill-account-diagnostic.mjs";
 import {runAccountBenchmark} from "./bill-account-benchmark.mjs";
 import {runFocusedTick} from "./bill-focused-tick.mjs";
 import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
@@ -177,6 +178,10 @@ Deno.serve(async req=>{
  const cfg=Array.isArray(cfgRaw)?cfgRaw[0]:cfgRaw;
  if(cfgError||!cfg?.scan_key||req.headers.get("x-internal-dispatch-key")!==cfg.scan_key)return response({error:"not_authorized"},403);
  const body=await req.json().catch(()=>({}));
+ if(body.action==="account_crop_diagnostic"){
+   try{return response(await inspectAccountCohort({db,digest:sha256,signal:AbortSignal.timeout(40000)}));}
+   catch{return response({error:"account_diagnostic_failed",ledger_written:false},502);}
+ }
  if(body.action==="account_crop_benchmark"){
    try{return response(await runAccountBenchmark({db,key:Deno.env.get("GEMINI_API_KEY")||"",digest:sha256,signal:AbortSignal.timeout(45000)}));}
    catch{return response({error:"account_benchmark_failed",ledger_written:false},502);}

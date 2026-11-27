@@ -19,3 +19,10 @@ for(const bad of [{role:"sender_account",box:region.box},{role:"recipient_accoun
 assert.equal(await locateAccountRegion({...args,signal:AbortSignal.abort()}),null);
 assert.equal(await locateAccountRegion({...args,fetchFn:async()=>{throw Error("transport")}}),null);
 console.log("Legacy account localization and original-only fallbacks passed.");
+
+const trace=[];
+await locateAccountRegion({...args,fetchFn:async()=>reply({role:"unknown",box:null}),trace:e=>trace.push(e.reason)});
+assert.deepEqual(trace,["region_missing_or_invalid"]);
+const trace2=[];
+await locateAccountRegion({...args,fetchFn:async()=>({ok:false,status:503}),trace:e=>trace2.push(e.reason)});
+assert.deepEqual(trace2,["gemini_http_503"]);

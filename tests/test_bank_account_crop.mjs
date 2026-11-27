@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {normalizeAccountRegion,regionRect,cropRgba,safeJpegDimensions,buildAccountCrop,accountImageParts} from "../supabase/functions/v21-bank-bill-event/bill-account-crop.mjs";
+import {normalizeAccountRegion,regionRect,cropRgba,safeJpegDimensions,inspectJpeg,probeJpegCodec,buildAccountCrop,accountImageParts} from "../supabase/functions/v21-bank-bill-event/bill-account-crop.mjs";
 const region={role:"recipient_account",box:[400,150,500,850]};
 assert.deepEqual(normalizeAccountRegion(region),region);
 for(const bad of [null,{...region,role:"sender_account"},{...region,box:[0,0,1000,1000]},{...region,box:[400,800,500,200]},{...region,box:[400,150,500,1001]},{...region,box:[400.2,150,500,850]}])assert.equal(normalizeAccountRegion(bad),null);
@@ -23,3 +23,11 @@ assert.equal((await accountImageParts({bytes:header,mime:"image/webp",region,enc
 assert.equal(await buildAccountCrop(header,"image/jpeg",region,{loadCodec:async()=>{throw Error("codec")}}),null);
 assert.equal(await buildAccountCrop(header,"image/jpeg",region,{signal:AbortSignal.abort(),loadCodec}),null);
 console.log("Account region, clipping, pixel expansion and fallback passed.");
+
+assert.equal(inspectJpeg(header).reason,"eligible");
+const big=header.slice();big[7]=15;big[8]=160;big[9]=15;big[10]=160;
+assert.equal(inspectJpeg(big).reason,"pixel_limit");
+assert.equal(await probeJpegCodec(header,{loadCodec}),"decoded");
+assert.equal(await probeJpegCodec(header,{loadCodec:async()=>{throw Error("missing")}}),"codec_import");
+const reasons=[];await buildAccountCrop(header,"image/jpeg",region,{loadCodec:async()=>{throw Error("missing")},trace:x=>reasons.push(x.reason)});
+assert.deepEqual(reasons,["codec_import"]);

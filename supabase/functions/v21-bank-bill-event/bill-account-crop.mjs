@@ -16,30 +16,62 @@ export function regionRect(region,width,height){
  if(w<40||h<12||w*h>700_000)return null;
  return {x,y,w,h};
 }
-// Reject EXIF-oriented or ambiguous JPEGs instead of risking a rotated bbox.
-// The original image remains available to the model on all fallback paths.
-export function safeJpegDimensions(bytes){
- if(!(bytes instanceof Uint8Array)||bytes.length<4||bytes.length>4_000_000||bytes[0]!==255||bytes[1]!==216)return null;
- let i=2,dimensions=null;
+// Read EXIF orientation, not mere EXIF presence. Only upright/absent is
+// accepted: coordinates on an auto-rotated raster are otherwise ambiguous.
+export function exifOrientation(bytes,start,end){
+ if(end-start<14)return null;
+ const base=start+6;
+ const le=bytes[base]===73&&bytes[base+1]===73,be=bytes[base]===77&&bytes[base+1]===77;
+ if(!le&&!be)return null;
+ const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+ const u16=i=>view.getUint16(i,le),u32=i=>view.getUint32(i,le);
+ if(u16(base+2)!==42)return null;
+ const ifd=base+u32(base+4);
+ if(ifd<base+8||ifd+2>end)return null;
+ const count=u16(ifd);if(count>512||ifd+2+count*12+4>end)return null;
+ let orientation=1,seen=false;
+ for(let n=0;n<count;n++){
+  const i=ifd+2+n*12;
+  if(u16(i)!==274)continue;
+  if(seen||u16(i+2)!==3||u32(i+4)!==1)return null;
+  orientation=u16(i+8);seen=true;
+  if(orientation<1||orientation>8)return null;
+ }
+ return orientation;
+}
+export function inspectJpeg(bytes){
+ const info={reason:"invalid_jpeg",width:null,height:null,orientation:1,exif:false,bytes:bytes instanceof Uint8Array?bytes.length:0};
+ if(!(bytes instanceof Uint8Array)||bytes.length<4||bytes[0]!==255||bytes[1]!==216)return info;
+ if(bytes.length>4_000_000)return {...info,reason:"byte_limit"};
+ let i=2,dimensions=null,orientation=1,exif=false;
  while(i<bytes.length){
-  if(bytes[i++]!==255)return null;
+  if(bytes[i++]!==255)return info;
   while(i<bytes.length&&bytes[i]===255)i++;
   const marker=bytes[i++];
-  if(marker===218)return dimensions;
-  if(marker===217||i+2>bytes.length)return null;
+  if(marker===218){
+   if(!dimensions)return info;
+   const reason=orientation===null?"exif_invalid":orientation!==1?"exif_rotation":dimensions.width*dimensions.height>3_000_000?"pixel_limit":"eligible";
+   return {...info,...dimensions,orientation,exif,reason};
+  }
+  if(marker===217||i+2>bytes.length)return info;
   const length=bytes[i]*256+bytes[i+1];
-  if(length<2||i+length>bytes.length)return null;
-  // EXIF orientation can differ from the encoded raster. Conservative fallback.
-  if(marker===225&&length>=8&&bytes[i+2]===69&&bytes[i+3]===120&&bytes[i+4]===105&&bytes[i+5]===102)return null;
+  if(length<2||i+length>bytes.length)return info;
+  if(marker===225&&length>=8&&bytes[i+2]===69&&bytes[i+3]===120&&bytes[i+4]===105&&bytes[i+5]===102&&bytes[i+6]===0&&bytes[i+7]===0){
+   orientation=exif?null:exifOrientation(bytes,i+2,i+length);exif=true;
+  }
   if([192,193,194].includes(marker)){
-   if(length<8||dimensions)return null;
+   if(length<8||dimensions)return info;
    const height=bytes[i+3]*256+bytes[i+4],width=bytes[i+5]*256+bytes[i+6];
-   if(!width||!height||width*height>3_000_000)return null;
+   if(!width||!height)return info;
    dimensions={width,height};
   }
   i+=length;
  }
- return null;
+ return info;
+}
+export function safeJpegDimensions(bytes){
+ const info=inspectJpeg(bytes);
+ return info.reason==="eligible"?{width:info.width,height:info.height}:null;
 }
 // Integer nearest-neighbour expansion keeps original pixels, no AI enhancement.
 export function cropRgba(image,rect){
@@ -57,23 +89,39 @@ async function jpegCodec(){
  const mod=await import("npm:jpeg-js@0.4.4");
  return mod.default??mod;
 }
-export async function buildAccountCrop(bytes,mime,region,{loadCodec=jpegCodec,signal}={}){
- if(signal?.aborted||!["image/jpeg","image/jpg"].includes(mime)||!normalizeAccountRegion(region))return null;
- const dim=safeJpegDimensions(bytes);if(!dim)return null;
- const rect=regionRect(region,dim.width,dim.height);if(!rect)return null;
- try{
-  const codec=await loadCodec();if(signal?.aborted)return null;
-  const image=codec.decode(bytes,{useTArray:true,formatAsRGBA:true,tolerantDecoding:false,maxResolutionInMP:3,maxMemoryUsageInMB:48});
-  if(image.width!==dim.width||image.height!==dim.height)return null;
-  const crop=cropRgba(image,rect);if(!crop||signal?.aborted)return null;
-  const encoded=codec.encode(crop,95).data;
-  if(signal?.aborted||!(encoded instanceof Uint8Array)||!encoded.length||encoded.length>900_000)return null;
-  return {bytes:encoded,mime:"image/jpeg",scale:crop.scale};
- }catch{return null;}
+export async function probeJpegCodec(bytes,{loadCodec=jpegCodec,signal}={}){
+ const info=inspectJpeg(bytes);if(info.reason!=="eligible")return info.reason;
+ if(signal?.aborted)return "aborted";
+ let codec,image;
+ try{codec=await loadCodec();}catch{return "codec_import";}
+ if(signal?.aborted)return "aborted";
+ try{image=codec.decode(bytes,{useTArray:true,formatAsRGBA:true,tolerantDecoding:false,maxResolutionInMP:3,maxMemoryUsageInMB:48});}catch{return "codec_decode";}
+ return image.width===info.width&&image.height===info.height?"decoded":"codec_dimensions";
 }
-export async function accountImageParts({bytes,mime,region,encode,signal,loadCodec}){
+export async function buildAccountCrop(bytes,mime,region,{loadCodec=jpegCodec,signal,trace=()=>{}}={}){
+ const fail=reason=>{trace({stage:"crop",reason});return null;};
+ if(signal?.aborted)return fail("aborted");
+ if(!["image/jpeg","image/jpg"].includes(mime))return fail("unsupported_mime");
+ const info=inspectJpeg(bytes);
+ if(info.reason!=="eligible")return fail(info.reason);
+ if(!normalizeAccountRegion(region))return fail("region_missing_or_invalid");
+ const rect=regionRect(region,info.width,info.height);if(!rect)return fail("region_bounds");
+ let codec,image,encoded;
+ try{codec=await loadCodec();}catch{return fail("codec_import");}
+ if(signal?.aborted)return fail("aborted");
+ try{image=codec.decode(bytes,{useTArray:true,formatAsRGBA:true,tolerantDecoding:false,maxResolutionInMP:3,maxMemoryUsageInMB:48});}catch{return fail("codec_decode");}
+ if(image.width!==info.width||image.height!==info.height)return fail("codec_dimensions");
+ const crop=cropRgba(image,rect);if(!crop)return fail("crop_bounds");
+ if(signal?.aborted)return fail("aborted");
+ try{encoded=codec.encode(crop,95).data;}catch{return fail("codec_encode");}
+ if(signal?.aborted)return fail("aborted");
+ if(!(encoded instanceof Uint8Array)||!encoded.length||encoded.length>900_000)return fail("output_limit");
+ trace({stage:"crop",reason:"used",scale:crop.scale});
+ return {bytes:encoded,mime:"image/jpeg",scale:crop.scale};
+}
+export async function accountImageParts({bytes,mime,region,encode,signal,loadCodec,trace}){
  const parts=[{inlineData:{mimeType:mime==="image/jpg"?"image/jpeg":mime,data:encode(bytes)}}];
- const crop=await buildAccountCrop(bytes,mime,region,{signal,loadCodec});
+ const crop=await buildAccountCrop(bytes,mime,region,{signal,loadCodec,trace});
  if(crop)parts.push({text:"Ảnh thứ hai là vùng phóng to từ ảnh thứ nhất, chỉ dùng để kiểm tra từng nét số. Xác minh nhãn và vai trò người nhận trên ảnh thứ nhất; nếu hai ảnh hoặc vị trí không khớp, clear=false."},{inlineData:{mimeType:crop.mime,data:encode(crop.bytes)}});
  return parts;
 }
