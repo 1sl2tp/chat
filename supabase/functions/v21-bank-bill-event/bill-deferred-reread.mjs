@@ -3,6 +3,7 @@
 import {ACCOUNT_DIGIT_RECHECK_PROMPT,SMALL_TEXT_RECHECK_PROMPT,needsAccountDigitRecheck,resolveAccountDigitRecheck,needsSmallTextRecheck,recoverSmallText,readV4Fields} from "./bill-amount-rules.mjs";
 import {requestBillGemini,parseBillGeminiResponse,BILL_OCR_FALLBACK_MODEL} from "./bill-gemini-failover.mjs";
 import {accountImageParts} from "./bill-account-crop.mjs";
+import {canLocateAccountRegion,prepareLocatedAccountParts} from "./bill-account-locator.mjs";
 const retryable=s=>["timeout","budget_exhausted","request_failed","invalid_json","gemini_http_502","gemini_http_503","gemini_http_504"].includes(s);
 export function deferredFields(raw){
  if(!raw||raw.transfer_success_visible!==true)return [];
@@ -62,10 +63,12 @@ export async function runDeferred({store,download,digest,encode,key,fetchFn=fetc
    else{
     const disagreement=job.field==="account"&&job.raw.account_digit_recheck_state==="digit_evidence_disagrees";
     const prompt=job.field==="account"?(disagreement?ACCOUNT_DIGIT_RECHECK_PROMPT+"\nKhoanh vùng bằng mắt ngay sau nhãn tài khoản người nhận, bỏ qua nền điện thoại. Kiểm tra điểm bắt đầu và kết thúc của dãy số. Đếm các ký tự lặp theo vị trí nhìn thấy; nếu không phân biệt được từng ký tự thì clear=false.":ACCOUNT_DIGIT_RECHECK_PROMPT):clockOnlyEligible(job.raw)?CLOCK_ONLY_PROMPT:SMALL_TEXT_RECHECK_PROMPT;
-    const bounded=AbortSignal.timeout(15000),combined=signal?AbortSignal.any([signal,bounded]):bounded;
-    const imageParts=job.field==="account"?await accountImageParts({bytes,mime,region:job.raw.recipient_account_region,encode,signal:combined}):[{inlineData:{mimeType:mime,data:encode(bytes)}}];
-    const v=await requestBillGemini({key,model:disagreement?BILL_OCR_FALLBACK_MODEL:"gemini-3.5-flash-lite",maxRequests:1,signal:combined,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},...imageParts]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
-    const parsed=await parseBillGeminiResponse(v.response,{signal:combined});
+    const locate=job.field==="account"&&canLocateAccountRegion(bytes,mime,job.raw.recipient_account_region);
+    const bounded=AbortSignal.timeout(locate?30000:15000),combined=signal?AbortSignal.any([signal,bounded]):bounded;
+    const imageParts=job.field==="account"?(locate?await prepareLocatedAccountParts({bytes,mime,stored:job.raw.recipient_account_region,encode,key,fetchFn,signal:combined}):await accountImageParts({bytes,mime,region:job.raw.recipient_account_region,encode,signal:combined})):[{inlineData:{mimeType:mime,data:encode(bytes)}}];
+    const readDeadline=AbortSignal.any([combined,AbortSignal.timeout(15000)]);
+    const v=await requestBillGemini({key,model:disagreement?BILL_OCR_FALLBACK_MODEL:"gemini-3.5-flash-lite",maxRequests:1,signal:readDeadline,fetchFn,payload:{contents:[{role:"user",parts:[{text:prompt},...imageParts]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:job.field==="account"?2048:1024}}});
+    const parsed=await parseBillGeminiResponse(v.response,{signal:readDeadline});
     evidence=displayEvidence(job.raw,job.field,parsed);state=evidence?"verified":"needs_review";
    }
   }
