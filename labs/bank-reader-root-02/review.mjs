@@ -39,3 +39,22 @@ export function scoreSample(gold,raw,metrics){
   fields[k]={exact:match,iou};exact+=Number(match);if(iou!==null){regionSum+=iou;regions++;}}
  return {state:"scored",exact,total:10,kind_match:a.kind===gold.kind,field_scores:fields,mean_iou:regions?regionSum/regions:null,requests:metrics.requests,elapsed_ms:metrics.elapsed_ms};
 }
+
+// Resume only labels that are tied to bytes already opened locally.
+// Imported review data is an assertion from a reviewer, not authenticated proof.
+export function restoreReview(sample,entry){
+ if(!entry||entry.image_sha256!==sample.image_sha256||entry.coordinate_frame!=="displayed_original"||entry.frame_confirmed!==true)throw Error("resume_identity");
+ if(!["receipt","journal","notification","non_bill","unknown"].includes(entry.kind)&&entry.kind!==null)throw Error("resume_kind");
+ const fields={};
+ for(const k of FIELDS){
+  if(!Object.hasOwn(entry.fields||{},k))continue;
+  const f=entry.fields[k];
+  if(labelState(f,sample.image_sha256)!=="verified")throw Error("resume_field:"+k);
+  fields[k]=JSON.parse(JSON.stringify(f));
+ }
+ return {...sample,fields,kind:entry.kind,kind_reviewed:entry.kind_reviewed===true&&entry.kind!==null,frame_confirmed:false};
+}
+export function exportReview(sample){
+ const {file,...s}=sample;
+ return {...s,coordinate_frame:"displayed_original",kind_reviewed:s.kind_reviewed===true&&s.frame_confirmed===true,fields:s.frame_confirmed===true?s.fields:{}};
+}
