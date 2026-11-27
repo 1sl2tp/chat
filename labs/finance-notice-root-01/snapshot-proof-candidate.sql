@@ -61,7 +61,7 @@ begin
    ledger_id:=(event->>'ledger_id')::bigint;
    select count(*) into ledger_count from public.taphoa_debt_ledger d where d.id=ledger_id
      and d.customer_account_id=customer and d.created_by_account_id=actor
-     and d.entry_type=kind and d.amount_vnd=movement;
+     and d.entry_type=kind and d.amount_vnd=movement and d.created_at=cmd.created_at;
   elsif event->>'source' is null then
    select count(*),min(d.id) into ledger_count,ledger_id from public.taphoa_debt_ledger d where d.customer_account_id=customer
     and d.created_by_account_id=actor and d.entry_type=kind and d.amount_vnd=movement and d.created_at=cmd.created_at;
