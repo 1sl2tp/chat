@@ -16,3 +16,9 @@ assert.equal((await run(job.image_sha256,async()=>{calls++;return{ok:false,statu
 assert.equal(calls,2);
 assert.equal(done.at(-1).evidence,null);
 console.log("Deferred focused display-only worker tests passed.");
+
+job.mime_type="image/jpg";
+assert.equal((await run(job.image_sha256,async(url,opts)=>{calls++;assert.equal(JSON.parse(opts.body).contents[0].parts[1].inlineData.mimeType,"image/jpeg");return{ok:true,status:200,json:async()=>({candidates:[{content:{parts:[{text:JSON.stringify(proof)}]}}]})}})).state,"verified");
+job.mime_type="image/svg+xml";
+assert.equal((await run(job.image_sha256,async()=>{throw Error("must not call")})).state,"stale");
+console.log("JPEG alias and unsupported MIME regression passed.");
