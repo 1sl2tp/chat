@@ -6,7 +6,8 @@ export const REGION_GUIDE=[
  "VietinBank: số tiền lớn, ngày giờ nhỏ ngay dưới số tiền, mã giao dịch riêng; dưới mũi tên là tên và STK nhận, rồi ngân hàng nhận. Ô Nội dung ở cột phải: lấy đủ mọi dòng kể cả tên ở dòng đầu và lời nhắn ở dòng sau.",
  "Vietcombank: STK nhận trên tên người nhận, ngân hàng nhận dưới tên; lấy toàn bộ nội dung đến trước phí/hình thức/mã giao dịch. Techcombank: bỏ thông báo nổi, đọc khung Chuyển thành công, Tới + tên, STK nhận, Lời nhắn, Ngày thực hiện; Tới là nhãn.",
  "BIDV nhật ký: TK thanh toán là nguồn, không lấy tên/STK nhận từ memo SMB-TkThe. MB biến động: GD là giao dịch, SD bỏ qua, DEN nhận, ND nội dung. VPBank, MB, SHB, MSB, Co-opBank, MoMo và bố cục khác: xác định nhãn thật, không áp vị trí cứng.",
- "Đọc STK nhận từng chữ số từ hai phía, không tự bù số 9. Không lấy số cấu hình làm bằng chứng. Ngày giờ phải thuộc đúng giao dịch.",
+ "BIDV biên lai Chuyển thành công: trong khối Đến, đọc nguyên dòng Tài khoản ngay dưới tên người nhận; kết thúc trước dòng Tại/ngân hàng. Không lấy Số tham chiếu ở cuối bill làm STK.",
+ "Đọc STK nhận từng chữ số từ hai phía. Với dãy số lặp sát nhau, xác định ký tự đầu/cuối của vùng, đếm theo vị trí nhìn thấy, kiểm tra tổng độ dài trước khi chép nguyên chuỗi; không rút gọn hoặc tự bù số. Nếu nét chữ mờ không đủ bằng chứng thì không đoán. Không lấy số cấu hình làm bằng chứng. Ngày giờ phải thuộc đúng giao dịch.",
  "Trong cùng lần đọc, xác định trọn ô Nội dung/Nội dung CK/Lời nhắn, đọc từng dòng trên xuống. Trả thêm memo_lines là mảng từng dòng nguyên văn trong chính ô nội dung, hoặc null nếu không đủ rõ. transfer_content là toàn bộ dòng nối bằng khoảng trắng. Không lấy tên người gửi ở ô riêng, tên khách Chat hoặc tự thêm lời nhắn. Dừng trước nhãn khác.",
  "Giữ đúng khóa, enum, vai trò tiền, ngày giờ nguyên văn, mã tham chiếu và mã tra soát của JSON hiện hành. Không suy đoán trường thiếu, không ghi thu."
 ].join("\n");
