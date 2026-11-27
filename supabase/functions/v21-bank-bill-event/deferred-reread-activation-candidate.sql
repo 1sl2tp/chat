@@ -32,7 +32,7 @@ begin
  cross join (values ('account'),('small_text')) f(field)
  where v0_private.bill_focus_allowed(r.id) and r.status in ('received','amount_read','review','duplicate') and r.image_sha256 ~ '^[a-f0-9]{64}$'
  and r.raw_read->>'transfer_success_visible'='true'
- and ((f.field='account' and v0_private.bill_focus_retryable(r.raw_read->>'account_digit_recheck_state'))
+ and ((f.field='account' and (v0_private.bill_focus_retryable(r.raw_read->>'account_digit_recheck_state') or r.raw_read->>'account_digit_recheck_state'='digit_evidence_disagrees'))
  or (f.field='small_text' and v0_private.bill_focus_retryable(r.raw_read->>'small_text_recheck_state')))
  and not exists(select 1 from v0_private.bill_focused_reread q where q.receipt_id=r.id and q.raw_hash=md5(r.raw_read::text) and q.field=f.field)
  order by case when f.field='account' then 0 else 1 end,r.sent_at desc nulls last,r.id
