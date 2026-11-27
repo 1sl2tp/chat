@@ -78,7 +78,7 @@ const relocalResult=await runDeferred({
     assert(payload.generationConfig.responseJsonSchema);
     return modelResponse({role:"unknown",box:[]});
    }
-   assert.equal(relocalCalls,2);assert.match(url,/models\\/gemini-3\\.5-flash:generateContent$/);
+   assert.equal(relocalCalls,2);assert.ok(url.endsWith("/models/gemini-3.5-flash:generateContent"));
    assert.equal(payload.contents[0].parts.length,2);
    return modelResponse({...proof,reverse_digits:digits});
  }
