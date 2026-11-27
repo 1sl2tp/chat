@@ -13,8 +13,8 @@ def test_admin_push_edge_contract():
         'chat_service_get_call_push_vapid',
         'action === "public_key"', 'action === "subscribe"',
         'action === "unsubscribe"', 'action === "status"', 'action === "drain"',
-        'admin_required', 'v21_push_subscriptions', 'v21_admin_push_claim',
-        'v21_admin_push_result'
+        'admin_required', 'v21_push_subscriptions', 'v21_push_claim_fenced',
+        'v21_push_begin_fenced', 'v21_push_finish_fenced'
     ]:
         assert token in EDGE, token
     for forbidden in ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT']:
@@ -38,4 +38,12 @@ def test_admin_push_drain_wake_auth_and_delivery_contract():
     ]:
         assert token in EDGE, token
     drain=EDGE.split('action === "drain"',1)[1].split('const authHeader',1)[0]
-    assert drain.index('x-push-wake-token') < drain.index('v21_admin_push_claim')
+    assert drain.index('x-push-wake-token') < drain.index('v21_push_claim_fenced')
+
+    assert 'admin.rpc("v21_admin_push_claim"' not in drain
+    assert 'admin.rpc("v21_admin_push_result"' not in drain
+    assert drain.index('await beginAttempt("chat",claim)') < drain.index('await deliverToSubscriptions(admin,subscriptions,payload')
+    fenced=(ROOT/'labs/delivery-ack-root-01/push-fenced-candidate.sql').read_text()
+    assert 'public.v21_admin_push_claim(' in fenced
+    assert 'grant execute on function public.v21_push_finish_fenced' in fenced
+    assert 'to service_role' in fenced
