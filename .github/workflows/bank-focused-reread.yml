@@ -25,6 +25,7 @@ jobs:
         with:
           deno-version: v2.x
       - run: deno run tests/test_bank_account_crop_deno.mjs
+      - run: deno run tests/test_bank_account_cache_cycle_deno.mjs
 
   queue:
     runs-on: ubuntu-latest
