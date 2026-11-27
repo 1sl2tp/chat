@@ -1,0 +1,3 @@
+# Deferred reread — display-only candidate
+
+E0 aggregate production read: 4 account timeout, 1 small-text request_failed; all 5 already linked to ledger, active asset and SHA-256 present. No production writes. Preserve original receipt, status and ledger. One focused field family per claim, account first, then small text; exactly one model request, 15s signal, max 6MB, verify original SHA-256, existing strict evidence predicates, no speculative digits, no clearing existing values. Worker requires private persistent queue (unique receipt + raw revision + field, lease, attempt cap, backoff, compare-and-swap save) and trusted download adapter; no route or cron yet. Store contract intentionally not wired to financial functions. Synthetic tests only. No native/KB changes.

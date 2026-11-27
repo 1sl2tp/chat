@@ -15,3 +15,5 @@ jobs:
       - run: node tests/test_bank_focused_reread_budget.mjs
       - run: node tests/test_bank295_gemini_503_fallback_20261112.mjs
       - run: node tests/test_bank303_gemini_invalid_json_recovery_20261112.mjs
+
+      - run: node tests/test_bank_deferred_reread.mjs
