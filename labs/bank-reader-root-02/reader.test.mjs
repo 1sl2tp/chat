@@ -71,6 +71,24 @@ const singleLine=copy(a);singleLine.fields.memo=clear("Xem thêm");eq(plan(singl
 const bodyText=copy(a);bodyText.fields.memo=clear("Xem thêm\nNội dung giao dịch");eq(plan(bodyText).mode,"stop");
 const twoLines=copy(a);twoLines.fields.memo=clear("Mua hàng\nChuyen tien");eq(plan(twoLines).mode,"stop");
 eq(PROMPT.includes("không ghép STK"),true);eq(PROMPT.includes("cả 10 trường missing"),true);
+
+const labelName=copy(a);labelName.fields.recipient_name=clear("TOI NGUYEN VAN A");
+eq(plan(labelName).reasons.recipient_name,"possible_name_label");
+eq(plan(labelName).mode,"full_image");
+eq(validate(labelName).fields.recipient_name.text,"TOI NGUYEN VAN A");
+eq(Object.keys(review(labelName,labelName).proposals).length,0);
+const nameFixed=copy(labelName);nameFixed.fields.recipient_name=clear("NGUYEN VAN A");
+eq(review(labelName,nameFixed).proposals.recipient_name.requires_review,true);
+const actualName=copy(a);actualName.fields.recipient_name=clear("NGUYEN THI TOI");eq(plan(actualName).mode,"stop");
+const accented=copy(a);accented.fields.recipient_name=clear("Tới: Nguyễn Văn A");eq(plan(accented).reasons.recipient_name,"possible_name_label");
+const upsideDown=copy(a);upsideDown.layout="rotated_photo";upsideDown.fields.recipient_name=clear("NGUYEN VAN A");eq(plan(upsideDown).mode,"stop");
+const multiBill=copy(a);multiBill.layout="collage";multiBill.selection="ambiguous";eq(plan(multiBill).mode,"review");
+const fullMemo=copy(a);fullMemo.fields.memo={state:"clear",text:"NGUYEN VAN A\nChuyen tien",boxes:[[100,100,150,500],[160,200,180,500]]};
+eq(validate(fullMemo).fields.memo.text,"NGUYEN VAN A\nChuyen tien");eq(plan(fullMemo).mode,"stop");
+eq(PROMPT.includes("Tới/Đến không thuộc tên"),true);
+eq(PROMPT.includes("0/90/180/270"),true);
+eq(PROMPT.includes("dòng đầu tới dòng cuối"),true);
 console.log("BANK-READER-ROOT-02: "+count+" assertions passed");
+
 
 
