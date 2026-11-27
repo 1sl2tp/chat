@@ -12,6 +12,7 @@ on:
       - '.agents/skills/modern-web-guidance/**'
       - 'qa/**'
       - 'tests/test_chat_quality_sources_20261123.cjs'
+      - 'tests/test_chat_quality_v02_20261124.cjs'
   workflow_dispatch:
 
 permissions:
@@ -41,15 +42,19 @@ jobs:
           node tests/test_chat438_keyboard_content_priority_20261123.cjs
           node tests/test_chat439_composer_line_height_cap_20261123.cjs
           node tests/test_chat440_contextual_push_policy_20261123.cjs
+          node tests/test_chat_desktop_foreground_recovery_20261104.cjs
+          node tests/test_chat_web_server_first_sync_20261104.cjs
+          node tests/test_chat_outbox_single_flight_20261029.cjs
           node tests/test_chat441_ios_photo_multiselect_20261123.cjs
           node tests/test_chat_quality_sources_20261123.cjs
+          node tests/test_chat_quality_v02_20261124.cjs
 
   browser:
-    name: Local anonymous browser + accessibility
+    name: Local multi-engine browser + accessibility
     needs: quick
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event.schedule == '43 2 * * *' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -62,13 +67,13 @@ jobs:
         run: python tools/build_current_preview.py
       - name: Install pinned browser and guidance test packages
         run: npm --prefix qa install --no-audit --no-fund
-      - name: Install local Chromium test browser
-        run: npm --prefix qa exec -- playwright install --with-deps chromium
+      - name: Install isolated Chromium, Firefox and WebKit test browsers
+        run: npm --prefix qa exec -- playwright install --with-deps chromium firefox webkit
       - name: Verify Modern Web Guidance search works
         env:
           DISABLE_TELEMETRY: '1'
         run: npm --prefix qa run guidance:search -- "responsive design"
-      - name: Anonymous localhost shell and axe-core analysis
+      - name: Anonymous localhost geometry, screenshots and axe-core analysis
         run: npm --prefix qa run test:browser
       - name: Archive QA evidence (no credentials or production data)
         if: always()
