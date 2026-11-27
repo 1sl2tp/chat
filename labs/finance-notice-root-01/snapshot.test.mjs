@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {financeReceiptSnapshot as project} from './snapshot.mjs';
+const e={ok:true,notice_sent:true,source:'manual_cash',ledger_id:12,receipt_kind:'collection',amount_vnd:500,movement:-500,source_amount_vnd:500000,balance_before_vnd:900,balance_after_vnd:400,receipt_at:'2026-11-24T03:00:00Z'};
+const p={authorized:true,messageLive:true,recipientMatch:true,senderMatch:true,commandMatch:true,ledgerMatch:true,eventMatch:true};
+const opts={imagePolicy:true};
+test('existing quick cash text-only unless explicit image policy',()=>assert.equal(project(e,p).state,'text_only'));
+test('exact committed balance and original amount',()=>{const r=project(e,p,opts);assert.equal(r.state,'eligible');assert.equal(r.receipt.amountVnd,500000);assert.equal(r.receipt.beforeVnd,900000);assert.equal(r.receipt.afterVnd,400000)});
+test('negative or positive balance allowed, debt uses opposite movement',()=>{assert.equal(project({...e,balance_before_vnd:100,balance_after_vnd:-400},p,opts).state,'eligible');assert.equal(project({...e,source:undefined,receipt_kind:'payment',movement:500,balance_after_vnd:1400},p,opts).state,'eligible')});
+test('fail closed on wrong unit, balance, ledger, or recipient',()=>{for(const bad of [{source_amount_vnd:500},{balance_after_vnd:401},{ledger_id:null},{amount_vnd:NaN}])assert.equal(project({...e,...bad},p,opts).state,'review');for(const key of Object.keys(p))assert.equal(project(e,{...p,[key]:false},opts).state,'blocked')});
