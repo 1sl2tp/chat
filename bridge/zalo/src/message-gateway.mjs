@@ -67,6 +67,7 @@ export function createMessageGateway({endpoint,bridgeToken,fetchImpl=fetch}={}){
         zalo_id:String(event?.zaloId||''),
         zalo_message_id:String(event?.messageId||''),
         body:String(event?.text||''),
+        ...(event?.eventKind==='missed_call'?{event_kind:'missed_call'}:{}),
         event_at:event?.eventAt||new Date().toISOString(),
       });
       return{messageId:payload?.message_id||null};

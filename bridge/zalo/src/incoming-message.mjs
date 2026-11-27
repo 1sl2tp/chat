@@ -167,7 +167,7 @@ function normalizeMissedCall(content){
   if(!data)return null;
   const action=String(data.action||'').trim().toLowerCase();
   if(!action.includes('misscall'))return null;
-  return{text:'Cuộc gọi nhỡ',media:null};
+  return{text:'Cuộc gọi nhỡ',media:null,...(action==='recommened.misscall'?{eventKind:'missed_call'}:{})};
 }
 
 export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYPE,groupThreadType=GROUP_THREAD_TYPE}={}){
@@ -199,6 +199,7 @@ export function normalizeIncomingMessage(message,{userThreadType=USER_THREAD_TYP
     eventAt:eventAtFromTs(message?.data?.ts),
   };
   if(normalized.media)event.media=[normalized.media];
+  if(normalized.eventKind==='missed_call'&&message.type===userThreadType)event.eventKind='missed_call';
   return event;
 }
 
