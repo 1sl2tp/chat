@@ -11,12 +11,13 @@ end $fake$;
 create function public.chat_customer_summary_runtime_config() returns table(scan_key text) language sql as $fake$ select 'fixture-dispatch-key'::text $fake$;
 \ir ../../supabase/functions/v21-bank-bill-event/deferred-reread-dispatch-candidate.sql
 do $test$
-declare j jsonb;
+declare j jsonb; dispatched bigint;
 begin
  if has_function_privilege('authenticated','v0_private.bill_focus_dispatch()','execute') or has_function_privilege('anon','v0_private.bill_focus_dispatch()','execute') then raise exception 'dispatch grant';end if;
  if v0_private.bill_focus_dispatch() is not null then raise exception 'idle dispatch';end if;
  update v0_private.bill_focused_reread set state='queued',attempts=0,next_at=now() where field='account';
- if v0_private.bill_focus_dispatch() is null or (select count(*) from public.fixture_http)<>1 then raise exception 'missing dispatch';end if;
+ dispatched:=v0_private.bill_focus_dispatch();
+ if dispatched is null or (select count(*) from public.fixture_http)<>1 then raise exception 'missing dispatch';end if;
  j:=public.v0_bill_focus_claim();
  if j is null or v0_private.bill_focus_dispatch() is not null or (select count(*) from public.fixture_http)<>1 then raise exception 'busy dispatch';end if;
  raise notice 'Focused dispatcher idle/busy/permission fixture passed';
