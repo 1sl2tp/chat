@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
-import {FIELDS,PROMPT,RESPONSE_SCHEMA,validate,planRead2} from "./reader.mjs";
+import {FIELDS,PROMPT_V2,RESPONSE_SCHEMA_V2,validate,planWithValidation,normalizeLiteralAccount,checkAccountProof} from "./reader.mjs";
 import {parseAmountText} from "./bill-amount-rules.mjs";
 import {inspectJpeg,probeJpegCodec} from "./bill-account-crop.mjs";
 import {prepareLocatedAccountParts} from "./bill-account-locator.mjs";
@@ -8,7 +8,7 @@ import {normalizeBillImageMime,validateBillImageMime} from "./bill-image-identit
 import {ACCOUNT_DIGIT_RECHECK_PROMPT,validateAccountDigitProof} from "./bill-amount-rules.mjs";
 import {requestBillGemini,parseBillGeminiResponse} from "./bill-gemini-failover.mjs";
 // Isolated, short-lived read-only pilot. No receipt/ledger writes, no production worker imports.
-const VERSION="a7b18128b0ae7857182d1a572a77fa1d22d7bfdf";
+const VERSION="140c418973cfcc4490565902f3a2c4178e58d379";
 const CASES={
  vietin:{id:"b88d06a9-9495-456b-a7fd-67df48beb95f",ledger:1259,notice:484,amount:2200000,hash:"68184556885e687449a0ca4320c458220a1956e923bd51a34a392479c52f938d"},
  bidv:{id:"dbf9ca35-44d7-4255-ba2b-d3d772b8cfc8",ledger:1279,notice:497,amount:5000000,hash:"9fc7d446dd04e2ed8d644c886484b80e8f87de0e4f42e7f6de08eee16fb832ba"}
@@ -25,7 +25,7 @@ Deno.serve(async req=>{
  const cfg=Array.isArray(c)?c[0]:c;
  if(ce||!exact(req.headers.get("x-internal-dispatch-key")||"",String(cfg?.scan_key||"")))return response({error:"forbidden"},403);
  const body=await req.json().catch(()=>null);
- if(!body||!Object.hasOwn(CASES,body.case)||body.action!=="first")return response({error:"case"},400);
+ if(!body||body.case!=="bidv"||body.action!=="first"||!["default","ultra"].includes(body.resolution))return response({error:"case"},400);
  const target=CASES[body.case as keyof typeof CASES];
  const {data:mode,error:me}=await db.rpc("v0_bill_focus_mode");
  if(me||mode!=="pilot")return response({error:"not_pilot"},409);
@@ -62,15 +62,23 @@ Deno.serve(async req=>{
   };
   const image=inspectJpeg(bytes);
   const readSignal=AbortSignal.any([signal,AbortSignal.timeout(30000)]);
-  const v=await requestBillGemini({key,model:"gemini-3.5-flash-lite",maxRequests:1,fetchFn:counted,signal:readSignal,payload:{contents:[{role:"user",parts:[{text:PROMPT},{inlineData:{mimeType:mime,data:encode(bytes)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",responseJsonSchema:RESPONSE_SCHEMA,maxOutputTokens:4096}}});
-  const first=validate(await parseBillGeminiResponse(v.response,{signal:readSignal}),FIELDS);
-  const plan=planRead2(first,FIELDS);
+  const v=await requestBillGemini({key,model:"gemini-3.5-flash-lite",maxRequests:1,fetchFn:counted,signal:readSignal,payload:{contents:[{role:"user",parts:[{text:PROMPT_V2},{inlineData:{mimeType:mime,data:encode(bytes)},...(body.resolution==="ultra"?{mediaResolution:{level:"MEDIA_RESOLUTION_ULTRA_HIGH"}}:{})}]}],generationConfig:{temperature:0,responseMimeType:"application/json",responseJsonSchema:RESPONSE_SCHEMA_V2,maxOutputTokens:4096}}});
+  const raw=await parseBillGeminiResponse(v.response,{signal:readSignal});
+  const first=validate(raw,FIELDS);
   // Only compare after the independent read. Never send reference values to AI.
   const {data:n,error:ne}=await db.from("taphoa_agribank_notifications").select("amount_vnd,bank_credit_account").eq("id",target.notice).single();
   if(ne||!n)throw Error("link_guard");
   const val=(k:string)=>first.fields[k]?.state==="clear"?first.fields[k].literal:null;
   const amount=val("amount"),account=val("recipient_account");
-  return response({version:VERSION,case:body.case,kind:first.kind,selection:first.selection,fields:Object.fromEntries(FIELDS.map(k=>[k,{state:first.fields[k].state,has_box:!!first.fields[k].box}])),plan,amount_bank_match:typeof amount==="string"&&Math.abs(parseAmountText(amount))===Number(n.amount_vnd),account_bank_match:typeof account==="string"&&account.replace(/\s/g,"")===String(n.bank_credit_account),requests:calls,elapsed_ms:Date.now()-started,ledger_written:false,receipt_written:false});
+  const normalized=normalizeLiteralAccount(account), bank=String(n.bank_credit_account);
+  const amountMatch=typeof amount==="string"&&Math.abs(parseAmountText(amount))===Number(n.amount_vnd);
+  const accountMatch=normalized===bank;
+  const proof=checkAccountProof(account,raw.account_proof);
+  const plan=planWithValidation(first,raw.account_proof,{accountMatch,amountMatch});
+  const legacy=r.raw_read;
+  const map:Record<string,string>={amount:"amount_text",date:"transfer_date_printed_vn",time:"transfer_time_printed_vn",recipient_name:"recipient_name",recipient_account:"recipient_account_visible",receiving_bank:"receiving_bank",sending_bank:"sending_bank",memo:"transfer_content",reference:"transfer_reference",trace_code:"trace_code"};
+  const flatten=(x:unknown)=>typeof x==="string"?x.trim().replace(/\s+/g," "):null;
+  return response({version:VERSION,case:body.case,resolution:body.resolution,kind:first.kind,selection:first.selection,image:{width:image.width,height:image.height,bytes:bytes.length},fields:Object.fromEntries(FIELDS.map(k=>[k,{state:first.fields[k].state,has_box:!!first.fields[k].box,legacy_agrees:flatten(first.fields[k].literal)===flatten(legacy?.[map[k]])}])),plan,amount_bank_match:amountMatch,account_bank_match:accountMatch,account_proof:proof,account_literal_equals_bank:account===bank,account_normalized_length:normalized?.length??null,bank_length:bank.length,requests:calls,elapsed_ms:Date.now()-started,ledger_written:false,receipt_written:false});
  }catch(e){
   const msg=String(e?.message||"");
   return response({version:VERSION,case:body.case,state:"failed",reason:/^(receipt|link|media|storage|image|finish)_guard$|^missing_key$|^request_cap$|^gemini_http_[0-9]{3}$|^gemini_invalid_json$/.test(msg)?msg:signal.aborted?"timeout":"request_failed",requests:calls,locator_called:localized,crop_used:crop,elapsed_ms:Date.now()-started,ledger_written:false,receipt_written:false},502);
