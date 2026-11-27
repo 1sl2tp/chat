@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.57.4";
 import {runDeferred} from "./bill-deferred-reread.mjs";
+import {inspectJpeg,probeJpegCodec} from "./bill-account-crop.mjs";
 import {prepareLocatedAccountParts} from "./bill-account-locator.mjs";
 import {normalizeBillImageMime,validateBillImageMime} from "./bill-image-identity.mjs";
 import {ACCOUNT_DIGIT_RECHECK_PROMPT,validateAccountDigitProof} from "./bill-amount-rules.mjs";
@@ -8,8 +9,8 @@ import {requestBillGemini,parseBillGeminiResponse} from "./bill-gemini-failover.
 // Isolated, short-lived read-only pilot. No receipt/ledger writes, no production worker imports.
 const VERSION="1b7495a7c7a56d2fae802c928a00187252d535e0";
 const CASES={
- small:{id:"eb514bf3-003e-4651-9c9e-55109df7a2c2",ledger:1280,notice:499,amount:677000,hash:"2781fcf69b4883601fff351aa5cd0518119da56c154e7327c2fde73930d4e123"},
- control:{id:"a70acdb6-f929-4582-ad88-327bd72688c2",ledger:1281,notice:500,amount:10000000,hash:"35b72c80f78d9535ba8a7d93848d4934443ed1f281be2b2e8a0c1dd268eeec43"}
+ vietin:{id:"b88d06a9-9495-456b-a7fd-67df48beb95f",ledger:1259,notice:484,amount:2200000,hash:"68184556885e687449a0ca4320c458220a1956e923bd51a34a392479c52f938d"},
+ bidv:{id:"dbf9ca35-44d7-4255-ba2b-d3d772b8cfc8",ledger:1279,notice:497,amount:5000000,hash:"9fc7d446dd04e2ed8d644c886484b80e8f87de0e4f42e7f6de08eee16fb832ba"}
 } as const;
 const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});
 const response=(body:unknown,status=200)=>Response.json(body,{status,headers:{"cache-control":"no-store"}});
@@ -23,7 +24,7 @@ Deno.serve(async req=>{
  const cfg=Array.isArray(c)?c[0]:c;
  if(ce||!exact(req.headers.get("x-internal-dispatch-key")||"",String(cfg?.scan_key||"")))return response({error:"forbidden"},403);
  const body=await req.json().catch(()=>null);
- if(!body||body.case!=="small")return response({error:"case"},400);
+ if(!body||!Object.hasOwn(CASES,body.case)||!["diagnostic","cycle"].includes(body.action))return response({error:"case"},400);
  const target=CASES[body.case as keyof typeof CASES];
  const {data:mode,error:me}=await db.rpc("v0_bill_focus_mode");
  if(me||mode!=="pilot")return response({error:"not_pilot"},409);
@@ -51,29 +52,39 @@ Deno.serve(async req=>{
   const key=Deno.env.get("GEMINI_API_KEY")||"";
   if(!key)throw Error("missing_key");
   const counted=async(url:string,opts:any)=>{
-   if(calls>=2)throw Error("request_cap");
+   if(calls>=3)throw Error("request_cap");
    calls++;
    const p=JSON.parse(opts.body);
    if(p.generationConfig?.responseJsonSchema)localized=true;
    else crop=p.contents?.[0]?.parts?.filter((x:any)=>x.inlineData).length===2;
    return fetch(url,opts);
   };
-  let state="needs_review",proof=false;
-  if(body.case==="small"){
-   // Execute the exact candidate deferred reader, but claim/finish live only in memory.
-   const job={id:r.id,raw:r.raw_read,field:"account",image_sha256:r.image_sha256,storage_key:a.storage_key,mime_type:a.mime_type};
-   const result=await runDeferred({store:{claim:async()=>job,finish:async(_j:any,v:any)=>{finishCount++;proof=v.state==="verified"&&!!v.evidence?.account;return v.state}},download:async()=>bytes,digest,encode,key,fetchFn:counted,signal,logFn});
-   state=result.state;
-   if(finishCount!==1)throw Error("finish_guard");
-  }else{
-   // Full-digit control case: independent localization + strict shared proof, no fake OCR input.
-   const parts=await prepareLocatedAccountParts({bytes,mime,stored:null,encode,key,fetchFn:counted,signal});
-   const readSignal=AbortSignal.any([signal,AbortSignal.timeout(15000)]);
+  const image=inspectJpeg(bytes);
+  const codec=await probeJpegCodec(bytes,{signal});
+  if(body.action==="diagnostic")return response({version:VERSION,case:body.case,image,codec,requests:0,ledger_written:false,receipt_written:false});
+  if(image.reason!=="eligible"||codec!=="decoded")throw Error("image_guard");
+  // Cache adapter is deliberately in-memory for this isolated image trial.
+  // Production SQL cache lease/ACL tests are separate; no DB writes here.
+  let cached:any=null;
+  const traces:any[]=[];
+  const trace=(event:any)=>{if(traces.length<30)traces.push({stage:event.stage,reason:event.reason,scale:event.scale});};
+  const cache={get:async()=>cached,put:async(r:any)=>{cached=r;return true},remove:async()=>{cached=null;return true}};
+  const run=async()=>{
+   const started=Date.now(),before=calls;
+   let region:any=null,hit=false;
+   const parts=await prepareLocatedAccountParts({bytes,mime,stored:null,encode,key,fetchFn:counted,signal,trace,cache,onCropRegion:(r:any,h:boolean)=>{region=r;hit=h;}});
+   const used=parts.length===3;
+   if(!used)return {exact:false,crop:false,hit,requests:calls-before,elapsed_ms:Date.now()-started,reason:"region_unavailable"};
+   const readSignal=AbortSignal.any([signal,AbortSignal.timeout(20000)]);
    const v=await requestBillGemini({key,model:"gemini-3.5-flash-lite",maxRequests:1,fetchFn:counted,signal:readSignal,payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},...parts]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:2048}}});
-   proof=validateAccountDigitProof(await parseBillGeminiResponse(v.response,{signal:readSignal}))!==null;
-   state=proof?"verified":"needs_review";
-  }
-  return response({version:VERSION,case:body.case,state,exact:proof,requests:calls,locator_called:localized,crop_used:crop,elapsed_ms:Date.now()-started,stages,ledger_written:false,receipt_written:false});
+   const proof=validateAccountDigitProof(await parseBillGeminiResponse(v.response,{signal:readSignal}))!==null;
+   if(proof&&region&&!hit)await cache.put(region);
+   if(!proof&&hit)await cache.remove();
+   return {exact:proof,crop:used,hit,requests:calls-before,elapsed_ms:Date.now()-started};
+  };
+  const cold=await run();
+  const warm=cold.exact&&cached&&!signal.aborted?await run():null;
+  return response({version:VERSION,case:body.case,image,codec,cold,warm,requests:calls,traces,cache_retained:!!cached,ledger_written:false,receipt_written:false});
  }catch(e){
   const msg=String(e?.message||"");
   return response({version:VERSION,case:body.case,state:"failed",reason:/^(receipt|link|media|storage|image|finish)_guard$|^missing_key$|^request_cap$|^gemini_http_[0-9]{3}$|^gemini_invalid_json$/.test(msg)?msg:signal.aborted?"timeout":"request_failed",requests:calls,locator_called:localized,crop_used:crop,elapsed_ms:Date.now()-started,ledger_written:false,receipt_written:false},502);
