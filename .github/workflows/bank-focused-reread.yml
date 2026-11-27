@@ -17,6 +17,7 @@ jobs:
       - run: node tests/test_bank303_gemini_invalid_json_recovery_20261112.mjs
 
       - run: node tests/test_bank_deferred_reread.mjs
+      - run: node tests/test_bank_focus_activation.mjs
 
   queue:
     runs-on: ubuntu-latest
@@ -32,3 +33,5 @@ jobs:
       - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/queue-test.sql
 
       - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/dispatch-test.sql
+
+      - run: PGPASSWORD=fixture psql -h localhost -U postgres -X -v ON_ERROR_STOP=1 -f fixtures/bill-focused-reread/activation-test.sql
