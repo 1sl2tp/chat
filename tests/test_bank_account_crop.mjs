@@ -1,0 +1,25 @@
+import assert from "node:assert/strict";
+import {normalizeAccountRegion,regionRect,cropRgba,safeJpegDimensions,buildAccountCrop,accountImageParts} from "../supabase/functions/v21-bank-bill-event/bill-account-crop.mjs";
+const region={role:"recipient_account",box:[400,150,500,850]};
+assert.deepEqual(normalizeAccountRegion(region),region);
+for(const bad of [null,{...region,role:"sender_account"},{...region,box:[0,0,1000,1000]},{...region,box:[400,800,500,200]},{...region,box:[400,150,500,1001]},{...region,box:[400.2,150,500,850]}])assert.equal(normalizeAccountRegion(bad),null);
+assert.deepEqual(regionRect(region,1000,1000),{x:120,y:375,w:760,h:150});
+assert.equal(regionRect(region,4000,4000),null);
+const image={width:4,height:4,data:new Uint8Array(4*4*4)};
+for(let i=0;i<image.data.length;i++)image.data[i]=i;
+const crop=cropRgba(image,{x:1,y:1,w:2,h:2});
+assert.equal(crop.scale,3);assert.equal(crop.width,6);assert.equal(crop.height,6);
+assert.deepEqual(crop.data.slice(0,4),image.data.slice(20,24));
+assert.deepEqual(crop.data.slice(-4),image.data.slice(40,44));
+assert.equal(cropRgba(image,{x:3,y:0,w:2,h:2}),null);
+// Header-only mock: 200x100 JPEG, test pixel integration without loading npm.
+const header=new Uint8Array([255,216,255,192,0,8,8,0,100,0,200,1,255,218]);
+assert.deepEqual(safeJpegDimensions(header),{width:200,height:100});
+assert.equal(safeJpegDimensions(new Uint8Array([255,216,255,225,0,8,69,120,105,102,0,0,255,218])),null);
+const loadCodec=async()=>({decode:()=>({width:200,height:100,data:new Uint8Array(200*100*4)}),encode:(img)=>{assert.equal(img.scale,3);return {data:new Uint8Array([1,2,3])}}});
+const parts=await accountImageParts({bytes:header,mime:"image/jpg",region,encode:b=>String(b.length),loadCodec});
+assert.equal(parts.length,3);assert.equal(parts[0].inlineData.mimeType,"image/jpeg");assert.equal(parts[2].inlineData.data,"3");
+assert.equal((await accountImageParts({bytes:header,mime:"image/webp",region,encode:b=>String(b.length),loadCodec})).length,1);
+assert.equal(await buildAccountCrop(header,"image/jpeg",region,{loadCodec:async()=>{throw Error("codec")}}),null);
+assert.equal(await buildAccountCrop(header,"image/jpeg",region,{signal:AbortSignal.abort(),loadCodec}),null);
+console.log("Account region, clipping, pixel expansion and fallback passed.");
