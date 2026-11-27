@@ -8,3 +8,6 @@ This is the next integration step after merged PR #444, not a new reader design.
 
 ## Integration audit
 Production v0_admin_media returns `{account_id, assets}`; require matching authenticated account and exactly one image asset before storage download. Preserve the existing conversation membership/session guard and Storage RLS. Prompt v5 is unchanged. Test wrong owner, absent/duplicate IDs, unexpected envelope and invalid image rows. Live provider validation and authenticated invocation remain required; do not treat CI as a live result.
+
+## Browser integration
+Allow only https://1sl2tp.github.io as browser Origin, handle OPTIONS without quota, preserve CORS on all handler responses. Retain JWT gateway, verified getUser and active Admin session; require aal2 matching the existing bill audit. No new key or login. Prompt v5 unchanged. No retry, no financial write.

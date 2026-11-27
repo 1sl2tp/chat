@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {FIELDS,PROMPT,SCHEMA} from "./reader.mjs";
-import {createReaderHandler,selectAuthorizedImage} from "./api.mjs";
+import {createReaderHandler,selectAuthorizedImage,withBrowserCors,hasVerifiedMfaClaim} from "./api.mjs";
 const ids={asset_id:"12345678-1234-1234-1234-123456789abc",conversation_id:"87654321-1234-1234-1234-123456789abc"};
 const bytes=new Uint8Array(100);bytes.set([255,216,255]);
 const raw={kind:"receipt",selection:"single",direction:"unsigned",status:"success",layout:"screenshot",fields:Object.fromEntries(FIELDS.map(k=>[k,{state:"missing",text:null,boxes:[]}])),account_check:null};
@@ -36,3 +36,11 @@ for(const bad of [[row],{...envelope,account_id:ids.conversation_id},{...envelop
 assert.equal(selectAuthorizedImage(envelope,owner,ids.conversation_id),null);n++;
 await check({loadMedia:async()=>selectAuthorizedImage({...envelope,account_id:ids.conversation_id},owner,ids.asset_id)},make(),422,0,0);
 console.log("Read-only API: "+n+" scenarios passed");
+
+let forwarded=0;const wrapped=withBrowserCors(async()=>{forwarded++;return new Response("{}",{status:403,headers:{"content-type":"application/json"}})});
+const browser="https://1sl2tp.github.io";
+const preflight=await wrapped(new Request("https://example.test",{method:"OPTIONS",headers:{origin:browser}}));assert.equal(preflight.status,204);assert.equal(preflight.headers.get("access-control-allow-origin"),browser);assert.equal(forwarded,0);
+const foreign=await wrapped(new Request("https://example.test",{method:"POST",headers:{origin:"https://evil.example"}}));assert.equal(foreign.status,403);assert.equal(foreign.headers.get("access-control-allow-origin"),null);assert.equal(forwarded,0);
+const denied=await wrapped(new Request("https://example.test",{method:"POST",headers:{origin:browser}}));assert.equal(denied.status,403);assert.equal(denied.headers.get("access-control-allow-origin"),browser);assert.equal(denied.headers.get("cache-control"),"no-store");assert.equal(forwarded,1);
+const token=aal=>"a."+btoa(JSON.stringify({aal})).replace(/=+$/,"")+".b";assert.equal(hasVerifiedMfaClaim(token("aal2")),true);assert.equal(hasVerifiedMfaClaim(token("aal1")),false);assert.equal(hasVerifiedMfaClaim("invalid"),false);
+console.log("Browser CORS and verified MFA claim contract passed");
