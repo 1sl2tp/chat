@@ -19,6 +19,7 @@ jobs:
       - run: node tests/test_bank_deferred_reread.mjs
       - run: node tests/test_bank_focus_activation.mjs
       - run: node tests/test_bank_account_crop.mjs
+      - run: node tests/test_bank_account_locator.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
