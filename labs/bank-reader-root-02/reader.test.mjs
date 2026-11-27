@@ -1,6 +1,6 @@
 
 import assert from "node:assert/strict";
-import {FIELDS,PROMPT,SCHEMA,validate,validBox,accountDigits,accountConsensus,plan,review,partition} from "./reader.mjs";
+import {FIELDS,PROMPT,SCHEMA,validate,validBox,accountDigits,accountConsensus,plan,review,partition,printedClockTokens} from "./reader.mjs";
 let count=0;
 const eq=(a,b)=>{assert.equal(a,b);count++};
 const fails=(fn,pattern)=>{assert.throws(fn,pattern);count++};
@@ -41,4 +41,20 @@ const other=copy(a);other.kind="journal";eq(Object.keys(review(a,other,{accountM
 eq(Object.keys(review(a,a).proposals).length,0);
 eq(partition("00"+"a".repeat(62)),"holdout");eq(partition("ff"+"b".repeat(62)),"development");eq(partition("bad"),"quarantine");
 const memo=copy(a);memo.fields.memo={state:"clear",text:"Dòng 1\nDòng 2",boxes:[[10,10,20,80],[21,10,30,80]]};eq(validate(memo).fields.memo.text,"Dòng 1\nDòng 2");
+
+eq(printedClockTokens("4 thg 1, 2025 lúc 8:09")[0],"8:09");
+eq(printedClockTokens("04/01/2025 08:09 • ABC123")[0],"08:09");
+eq(printedClockTokens("24:90").length,0);
+eq(printedClockTokens("08:09:60").length,0);
+const joined=copy(a);joined.fields.date=clear("4 thg 1, 2025 lúc 8:09");joined.fields.time=absent();
+eq(plan(joined).reasons.date,"date_contains_clock");
+eq(plan(joined).reasons.time,"separate_printed_clock");
+eq(plan(joined).mode,"full_image");
+eq(validate(joined).fields.time.text,null);
+const isolated=copy(a);isolated.fields.date=clear("4 thg 1, 2025");isolated.fields.time=clear("8:09");
+eq(plan(isolated).mode,"stop");
+const noClock=copy(isolated);noClock.fields.time=absent();eq(plan(noClock).mode,"stop");
+const mixed=copy(isolated);mixed.fields.time=clear("lúc 8:09");eq(plan(mixed).reasons.time,"clock_literal_not_isolated");
+eq(validate(mixed).fields.time.text,"lúc 8:09");
 console.log("BANK-READER-ROOT-02: "+count+" assertions passed");
+
