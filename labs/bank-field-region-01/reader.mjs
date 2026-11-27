@@ -410,15 +410,15 @@ export function normalizeLiteralAccount(value){
  const s=value.trim();
  // Only spacing and separators surrounded by digits may be ignored.
  // Never remove letters, mask characters, or extra decoration.
- if(!/^[0-9]+(?:[ .:\\-]+[0-9]+)*$/u.test(s))return null;
- const n=s.replace(/[ .:\\-]/g,"");
- return /^\\d{9,20}$/.test(n)?n:null;
+ if(!/^[0-9]+(?:[ .:\-]+[0-9]+)*$/u.test(s))return null;
+ const n=s.replace(/[ .:\-]/g,"");
+ return /^\d{9,20}$/.test(n)?n:null;
 }
 export function checkAccountProof(literal,proof){
  const account=normalizeLiteralAccount(literal);
  const l=proof?.digits_left_to_right,r=proof?.digits_right_to_left;
  if(!account)return {ok:false,reason:"account_format_or_masked",digits:null};
- if(!Array.isArray(l)||!Array.isArray(r)||!l.every(x=>typeof x==="string"&&/^\\d$/.test(x))||!r.every(x=>typeof x==="string"&&/^\\d$/.test(x))||proof.visible_count!==account.length||l.length!==account.length||r.length!==account.length||l.join("")!==account||r.slice().reverse().join("")!==account)return {ok:false,reason:"account_digit_disagreement",digits:account.length};
+ if(!Array.isArray(l)||!Array.isArray(r)||!l.every(x=>typeof x==="string"&&/^\d$/.test(x))||!r.every(x=>typeof x==="string"&&/^\d$/.test(x))||proof.visible_count!==account.length||l.length!==account.length||r.length!==account.length||l.join("")!==account||r.slice().reverse().join("")!==account)return {ok:false,reason:"account_digit_disagreement",digits:account.length};
  return {ok:true,reason:"account_digit_consensus",digits:account.length};
 }
 export function planWithValidation(first,proof,bankEvidence={}){
