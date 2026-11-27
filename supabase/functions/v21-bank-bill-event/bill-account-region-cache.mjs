@@ -11,6 +11,7 @@ export function makeAccountRegionCache(db,kind,job,{trace=()=>{},signal,timeoutM
   let onAbort;
   try{
    const abort=new Promise((_,reject)=>{onAbort=()=>reject(Error("cache_timeout"));combined.addEventListener("abort",onAbort,{once:true});});
+   if(combined.aborted)throw Error("cache_timeout");
    let request=db.rpc(name,{...args,...extra});
    if(typeof request?.abortSignal==="function")request=request.abortSignal(combined);
    const {data,error}=await Promise.race([Promise.resolve(request),abort]);
