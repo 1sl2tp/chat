@@ -1,0 +1,36 @@
+import {createRequire} from "node:module";
+import {createServer} from "node:http";
+import {readFile} from "node:fs/promises";
+import assert from "node:assert/strict";
+const require=createRequire(process.env.PLAYWRIGHT_PACKAGE_ROOT+"/package.json");
+const {chromium}=require("playwright");
+const html=await readFile(new URL("./review-offline.html",import.meta.url));
+const server=createServer((req,res)=>{res.writeHead(200,{"Content-Type":"text/html; charset=utf-8"});res.end(html)});
+await new Promise(r=>server.listen(0,"127.0.0.1",r));
+const browser=await chromium.launch({headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:1100,height:800},acceptDownloads:true});
+ const errors=[];page.on("pageerror",e=>errors.push(e.message));
+ await page.goto("http://127.0.0.1:"+server.address().port);
+ const img={name:"synthetic.svg",mimeType:"image/svg+xml",buffer:Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="500"><rect width="300" height="500" fill="white"/><text x="40" y="100">123.456 VND</text></svg>')};
+ await page.locator("#files").setInputFiles(img);
+ await page.waitForFunction(()=>document.querySelector("#photo").naturalWidth===300);
+ await page.locator("#frame").check();
+ await page.locator("#kind").selectOption("receipt");
+ await page.locator("#fields button").nth(4).click();
+ await page.locator("#literal").fill("123.456 VND");
+ const rect=await page.locator("#overlay").boundingBox();
+ await page.mouse.move(rect.x+rect.width*.1,rect.y+rect.height*.1);await page.mouse.down();await page.mouse.move(rect.x+rect.width*.5,rect.y+rect.height*.2);await page.mouse.up();
+ await page.locator("#save").click();
+ assert.equal(await page.locator("#progress").textContent(),"1/10 trường đã xác minh");
+ const pending=page.waitForEvent("download");await page.locator("#export").click();const dl=await pending;const exported=JSON.parse(await readFile(await dl.path(),"utf8"));
+ assert.equal(exported.samples[0].fields.amount.text,"123.456 VND");
+ assert(exported.samples[0].fields.amount.boxes.length===1);
+ await page.locator("#resume").setInputFiles({name:"review.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify(exported))});
+ await page.waitForFunction(()=>document.querySelector("#feedback").textContent.includes("Đã nhập"));
+ assert.equal(await page.locator("#progress").textContent(),"0/10 trường đã xác minh");
+ await page.locator("#frame").check();
+ assert.equal(await page.locator("#progress").textContent(),"1/10 trường đã xác minh");
+ assert.deepEqual(errors,[]);
+ console.log("Browser smoke: upload, hash, geometry, annotation, export/import, reconfirm passed");
+}finally{await browser.close();await new Promise(r=>server.close(r));}
