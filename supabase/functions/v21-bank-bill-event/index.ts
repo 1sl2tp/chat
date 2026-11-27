@@ -177,7 +177,6 @@ Deno.serve(async req=>{
  const body=await req.json().catch(()=>({}));
  if(body.action==="focused_reread"){
    // Separate display-only path. Disabled by default, never falls into collection.
-   if(Deno.env.get("BANK_FOCUSED_REREAD_ENABLED")!=="true")return response({error:"focused_reread_disabled"},503);
    try{return response(await runFocusedTick({db,key:Deno.env.get("GEMINI_API_KEY")||"",digest:sha256,signal:AbortSignal.timeout(45000)}));}
    catch{return response({error:"focused_reread_failed",ledger_written:false},502);}
  }
