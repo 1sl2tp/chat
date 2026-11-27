@@ -1,11 +1,22 @@
 // Bounded location-only request. Coordinates are not OCR or financial evidence.
 import {normalizeAccountRegion,safeJpegDimensions,inspectJpeg,regionRect,accountImageParts} from "./bill-account-crop.mjs";
 import {requestBillGemini,parseBillGeminiResponse} from "./bill-gemini-failover.mjs";
+export const ACCOUNT_REGION_RESPONSE_SCHEMA={type:"object",properties:{role:{type:"string",enum:["recipient_account","unknown"]},box:{type:"array",items:{type:"integer",minimum:0,maximum:1000},maxItems:4}},required:["role","box"]};
+export function accountRegionRejectReason(value){
+ if(!value||typeof value!=="object"||Array.isArray(value))return "region_response_invalid";
+ if(value.role==="unknown")return "region_role_unknown";
+ if(value.role!=="recipient_account")return "region_role_invalid";
+ if(!Array.isArray(value.box)||value.box.length!==4)return "region_box_shape";
+ if(!value.box.every(n=>Number.isInteger(n)&&n>=0&&n<=1000))return "region_coordinate_invalid";
+ if(!normalizeAccountRegion(value))return "region_geometry_invalid";
+ return null;
+}
 export const ACCOUNT_REGION_PROMPT=[
  "Chỉ định vị vùng tài khoản NGƯỜI NHẬN của một giao dịch thành công trên ảnh gốc.",
  "Tìm nhãn và dòng số thuộc người nhận; không chọn TK gửi, mã tham chiếu, số tiền, nội dung hay thông báo ngoài biên lai.",
- "Trả tọa độ nguyên [ymin,xmin,ymax,xmax] từ 0 đến 1000 trên toàn ảnh gốc, bao trọn nhãn và dãy số từ đầu đến cuối. Không xoay ảnh.",
- "Chỉ trả JSON {role:\"recipient_account\" hoặc \"unknown\",box:[ymin,xmin,ymax,xmax] hoặc null}. Không đọc, đoán hoặc trả chữ số tài khoản. Không rõ thì role=unknown,box=null."
+ "Dùng hệ tọa độ chuẩn hóa 0..1000 của toàn ảnh gốc: y tăng từ trên xuống, x tăng từ trái sang phải. box theo thứ tự [ymin,xmin,ymax,xmax], không phải pixel hoặc phần trăm.",
+ "Bao trọn dòng số và nhãn người nhận liên quan; vùng cao 8..220 và rộng 70..950 đơn vị chuẩn hóa. Không xoay ảnh, không lấy cả biên lai. Không tự nới vùng nếu không xác định đúng vai trò.",
+ "Chỉ trả đối tượng JSON theo schema. Nếu xác định đúng người nhận: role=recipient_account và box gồm đúng 4 số nguyên. Nếu không rõ: role=unknown, box=[]; không tạo tọa độ giả. Không đọc, đoán hoặc trả chữ số tài khoản."
 ].join("\n");
 export function canLocateAccountRegion(bytes,mime,stored){
  const dim=safeJpegDimensions(bytes);
@@ -23,9 +34,11 @@ export async function locateAccountRegion({bytes,mime,stored,encode,key,model="g
  // Locator has its own deadline, while the parent owns the combined budget.
  const bounded=AbortSignal.timeout(12000),combined=signal?AbortSignal.any([signal,bounded]):bounded;
  try{
-  const v=await requestBillGemini({key,model,maxRequests:1,fetchFn,signal:combined,payload:{contents:[{role:"user",parts:[{text:ACCOUNT_REGION_PROMPT},{inlineData:{mimeType:"image/jpeg",data:encode(bytes)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:1024}}});
-  const region=normalizeAccountRegion(await parseBillGeminiResponse(v.response,{signal:combined}));
-  if(!region)return fail("region_missing_or_invalid");
+  const v=await requestBillGemini({key,model,maxRequests:1,fetchFn,signal:combined,payload:{contents:[{role:"user",parts:[{text:ACCOUNT_REGION_PROMPT},{inlineData:{mimeType:"image/jpeg",data:encode(bytes)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",responseJsonSchema:ACCOUNT_REGION_RESPONSE_SCHEMA,maxOutputTokens:1024}}});
+  const value=await parseBillGeminiResponse(v.response,{signal:combined});
+  const reason=accountRegionRejectReason(value);
+  if(reason)return fail(reason);
+  const region=normalizeAccountRegion(value);
   if(!regionRect(region,dim.width,dim.height))return fail("region_bounds");
   trace({stage:"locator",reason:"located"});return region;
  }catch(error){const m=String(error?.message||"");return fail(combined.aborted?"timeout":m==="gemini_invalid_json"?"invalid_json":/^gemini_http_\d{3}$/.test(m)?m:"request_failed");}
