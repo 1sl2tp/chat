@@ -64,4 +64,21 @@ begin
 end $$;
 revoke all on function v21_private.push_claim_fenced(text,integer) from public,anon,authenticated;
 revoke all on function v21_private.push_finish_fenced(text,uuid,integer,uuid,text,boolean) from public,anon,authenticated;
+
+-- Backend-only RPC surface. Restricted definer wrappers keep private tables closed.
+create or replace function public.v21_push_claim_fenced(p_family text,p_limit integer default 1)
+returns jsonb language sql security definer set search_path=''
+as $$ select v21_private.push_claim_fenced(p_family,p_limit) $$;
+create or replace function public.v21_push_begin_fenced(p_family text,p_id uuid,p_attempt integer,p_token uuid)
+returns boolean language sql security definer set search_path=''
+as $$ select v21_private.push_delivery_attempt_begin(p_family,p_id,p_attempt,p_token) $$;
+create or replace function public.v21_push_finish_fenced(p_family text,p_id uuid,p_attempt integer,p_token uuid,p_outcome text,p_terminal boolean default false)
+returns boolean language sql security definer set search_path=''
+as $$ select v21_private.push_finish_fenced(p_family,p_id,p_attempt,p_token,p_outcome,p_terminal) $$;
+revoke all on function public.v21_push_claim_fenced(text,integer) from public,anon,authenticated;
+revoke all on function public.v21_push_begin_fenced(text,uuid,integer,uuid) from public,anon,authenticated;
+revoke all on function public.v21_push_finish_fenced(text,uuid,integer,uuid,text,boolean) from public,anon,authenticated;
+grant execute on function public.v21_push_claim_fenced(text,integer) to service_role;
+grant execute on function public.v21_push_begin_fenced(text,uuid,integer,uuid) to service_role;
+grant execute on function public.v21_push_finish_fenced(text,uuid,integer,uuid,text,boolean) to service_role;
 commit;
