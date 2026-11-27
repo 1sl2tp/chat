@@ -400,3 +400,39 @@ function validate(raw,fields){if(!raw||!["receipt","journal","notification","non
 function planRead2(first,fields){if(first.selection!=="single"||!["receipt","journal","notification"].includes(first.kind))return {mode:"review",fields:[]};const keys=fields.filter(k=>["unclear","ambiguous"].includes(first.fields[k].state));return {mode:keys.length?(keys.every(k=>first.fields[k].box)?"crop":"full_image"):"stop",fields:keys};}
 function mergeRead2(first,second,requested,fields){const a=validate(first,fields),b=validate(second,fields);if(a.kind!==b.kind||a.selection!=="single"||b.selection!=="single"||a.direction!==b.direction)return {result:a,conflict:true};const out=JSON.parse(JSON.stringify(a));let conflict=false;for(const k of fields){if(a.fields[k].state==="clear"&&b.fields[k].state==="clear"&&a.fields[k].literal!==b.fields[k].literal)conflict=true;if(requested.includes(k)&&["unclear","ambiguous"].includes(a.fields[k].state)&&b.fields[k].state==="clear")out.fields[k]=b.fields[k];}return {result:conflict?a:out,conflict};}
 export {validate,planRead2,mergeRead2};
+
+// V2: independent local validation. No expected value is ever returned to the model.
+// A claimed "clear" field is not verified evidence.
+export const PROMPT_V2=PROMPT+"\n6. Với STK nhận: chép nguyên văn riêng dòng số sau nhãn người nhận; trả account_proof gồm digits_left_to_right (mảng từng chữ số), digits_right_to_left (đọc lại ảnh theo chiều ngược), visible_count (đếm chữ số thực sự nhìn thấy). Không xây mảng từ chuỗi đã chép; nếu bị che hoặc không chắc thì null. Với BIDV biên lai, chỉ khối Đến, dòng Tài khoản dưới tên, không lấy Tại hoặc Số tham chiếu. Không tự thêm số theo độ dài quen thuộc.";
+export const RESPONSE_SCHEMA_V2={...RESPONSE_SCHEMA,properties:{...RESPONSE_SCHEMA.properties,account_proof:{type:["object","null"],properties:{digits_left_to_right:{type:"array",items:{type:"string"}},digits_right_to_left:{type:"array",items:{type:"string"}},visible_count:{type:"integer"}},required:["digits_left_to_right","digits_right_to_left","visible_count"]}},required:[...RESPONSE_SCHEMA.required,"account_proof"]};
+export function normalizeLiteralAccount(value){
+ if(typeof value!=="string")return null;
+ const s=value.trim();
+ // Only spacing and separators surrounded by digits may be ignored.
+ // Never remove letters, mask characters, or extra decoration.
+ if(!/^[0-9]+(?:[ .:\\-]+[0-9]+)*$/u.test(s))return null;
+ const n=s.replace(/[ .:\\-]/g,"");
+ return /^\\d{9,20}$/.test(n)?n:null;
+}
+export function checkAccountProof(literal,proof){
+ const account=normalizeLiteralAccount(literal);
+ const l=proof?.digits_left_to_right,r=proof?.digits_right_to_left;
+ if(!account)return {ok:false,reason:"account_format_or_masked",digits:null};
+ if(!Array.isArray(l)||!Array.isArray(r)||!l.every(x=>typeof x==="string"&&/^\\d$/.test(x))||!r.every(x=>typeof x==="string"&&/^\\d$/.test(x))||proof.visible_count!==account.length||l.length!==account.length||r.length!==account.length||l.join("")!==account||r.slice().reverse().join("")!==account)return {ok:false,reason:"account_digit_disagreement",digits:account.length};
+ return {ok:true,reason:"account_digit_consensus",digits:account.length};
+}
+export function planWithValidation(first,proof,bankEvidence={}){
+ const base=planRead2(first,FIELDS);
+ if(base.mode==="review")return {...base,reasons:{}};
+ const reasons=Object.fromEntries(base.fields.map(k=>[k,"model_unclear"]));
+ const a=first.fields.recipient_account, amount=first.fields.amount;
+ if(a.state==="clear"){
+  const check=checkAccountProof(a.literal,proof);
+  if(!check.ok)reasons.recipient_account=check.reason;
+  else if(typeof bankEvidence.accountMatch==="boolean"&&!bankEvidence.accountMatch)reasons.recipient_account="independent_bank_mismatch";
+ }else if(a.state==="missing"&&bankEvidence.accountMatch===false&&first.kind==="receipt")reasons.recipient_account="missing_receipt_account";
+ if(amount.state==="clear"&&bankEvidence.amountMatch===false)reasons.amount="independent_bank_mismatch";
+ if(amount.state==="missing"&&first.kind==="receipt")reasons.amount="missing_receipt_amount";
+ const keys=FIELDS.filter(k=>Object.hasOwn(reasons,k));
+ return {mode:keys.length?(keys.every(k=>first.fields[k].box)?"crop":"full_image"):"stop",fields:keys,reasons};
+}
