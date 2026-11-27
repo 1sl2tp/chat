@@ -9,6 +9,7 @@ import {eligibleForPrintedDateRescan} from "./bill-review-recheck.mjs";
 import {recoverStoredNoClockBankCredit} from "./bill-no-clock-worker.mjs";
 import {sendMissingClockCustomerReconciliation} from "./bill-no-clock-customer-notice.mjs";
 import {requestParsedBillGemini,requestBillGemini,parseBillGeminiResponse,BILL_OCR_FALLBACK_MODEL,BILL_OCR_MAX_MODEL_REQUESTS,focusedReadBudget} from "./bill-gemini-failover.mjs";
+import {accountImageParts,normalizeAccountRegion} from "./bill-account-crop.mjs";
 import {runFocusedTick} from "./bill-focused-tick.mjs";
 import {vietnamBusinessDayStartUtc} from "./bill-vietnam-day.mjs";
 import {isRetryableBillScanReason,describeBillDecision} from "./bill-decision-policy.mjs";
@@ -626,6 +627,7 @@ Deno.serve(async req=>{
    let usedModel=model;
    let parsed:any;
    let accountDigitRecheck:any=null;
+   let accountRegion:any=null;
    let accountDigitRecheckState='not_required';
    let smallTextRecheckState='not_required';
    try{
@@ -641,14 +643,16 @@ Deno.serve(async req=>{
      usedModel=vision.usedModel;
      let modelRequests=vision.modelRequestCount;
      parsed=sanitizeJournalRecipientFields(normalizeVisionMemo(vision.parsed));
+     accountRegion=needsAccountDigitRecheck(parsed)?normalizeAccountRegion(parsed.recipient_account_region):null;
      // One focused read, same original pixels and total request/time ceiling.
      // No financial action uses this separate display-only evidence.
      if(needsAccountDigitRecheck(parsed))accountDigitRecheckState='budget_exhausted';
      if(needsAccountDigitRecheck(parsed)&&focusedReadBudget({started:ocrStarted,now:Date.now(),requests:modelRequests,signal:ctl.signal}).allowed){
        try{
          modelRequests++;
+         const accountParts=await accountImageParts({bytes,mime:media.mime_type||"image/jpeg",region:accountRegion,signal:ctl.signal,encode:(data:Uint8Array)=>{if(data===bytes)return btoa(b64);let s="";for(let i=0;i<data.length;i+=8192)s+=String.fromCharCode(...data.subarray(i,i+8192));return btoa(s);}});
          const focused=await requestBillGemini({key:geminiKey,model,maxRequests:1,
-           payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},{inlineData:{mimeType:media.mime_type||"image/jpeg",data:btoa(b64)}}]}],
+           payload:{contents:[{role:"user",parts:[{text:ACCOUNT_DIGIT_RECHECK_PROMPT},...accountParts]}],
              generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:2048}},
            signal:ctl.signal});
          const second=await parseBillGeminiResponse(focused.response,{signal:ctl.signal});
@@ -756,6 +760,7 @@ Deno.serve(async req=>{
       recipient_account_last5:fields.receiving_account_last5,
       sender_name:fields.sender_name,sending_bank:fields.sending_bank,
       recipient_account_visible:fields.receiving_account_visible,
+      recipient_account_region:accountRegion,
       account_digit_recheck:accountDigitRecheck,
       account_digit_recheck_state:accountDigitRecheckState,
       small_text_recheck_state:smallTextRecheckState,
