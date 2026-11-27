@@ -44,3 +44,21 @@ export function createReaderHandler({authorize,loadMedia,reserve,invoke,hash,enc
   finally{clearTimeout(timer);}
  };
 }
+
+const browserOrigin="https://1sl2tp.github.io";
+export function withBrowserCors(handler){
+ return async req=>{
+  const origin=req.headers.get("origin");
+  if(origin&&origin!==browserOrigin)return err("origin_forbidden",403);
+  const headers={"Vary":"Origin","Access-Control-Allow-Origin":browserOrigin,"Access-Control-Allow-Methods":"POST, OPTIONS","Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info","Cache-Control":"no-store"};
+  if(req.method==="OPTIONS")return new Response(null,{status:204,headers});
+  const res=await handler(req);
+  const out=new Headers(res.headers);
+  for(const [k,v] of Object.entries(headers))out.set(k,v);
+  return new Response(res.body,{status:res.status,headers:out});
+ };
+}
+// Only use after auth.getUser verifies this exact token.
+export function hasVerifiedMfaClaim(token){
+ try{const p=token.split(".");if(p.length!==3)return false;return JSON.parse(atob(p[1].replace(/-/g,"+").replace(/_/g,"/"))).aal==="aal2";}catch{return false}
+}
