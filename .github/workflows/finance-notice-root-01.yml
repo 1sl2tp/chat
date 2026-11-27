@@ -9,6 +9,22 @@ permissions:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: fixture
+          POSTGRES_DB: finance_fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: fixture
     steps:
       - uses: actions/checkout@v4
       - run: node --test labs/finance-notice-root-01/snapshot.test.mjs
+      - run: psql -h localhost -U postgres -d finance_fixture -v ON_ERROR_STOP=1 -f labs/finance-notice-root-01/snapshot-proof.test.sql
